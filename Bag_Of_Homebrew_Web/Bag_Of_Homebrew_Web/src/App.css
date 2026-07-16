@@ -1,184 +1,308 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap');
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+* {
+  box-sizing: border-box;
 }
 
-.hero {
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #17171B;
+  font-family: 'Inter', sans-serif;
+  color: #E8E4DB;
+}
+
+.character-sheet-page {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) 2fr minmax(320px, 1fr);
+  gap: 24px;
+  padding: 24px;
+  min-height: 100vh;
 }
 
-#center {
+.character-sheet-page__center {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+  align-items: center;
+  gap: 16px;
 }
 
-#next-steps {
+.character-sheet-page__name {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  margin: 0;
+  color: #E8E4DB;
+}
+
+.character-sheet-page__slots-row {
   display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
+  gap: 32px;
+  align-items: center;
 }
 
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
+.equipment-column {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weapon-row {
+  display: flex;
+  gap: 12px;
+}
+
+.character-portrait {
+  width: 200px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.character-portrait img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.character-portrait__placeholder {
+  color: #8C897F;
+  font-size: 13px;
+}
+
+.pdf-dropzone {
+  border: 2px dashed #37373D;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8C897F;
+  font-size: 13px;
+  padding: 16px;
+  text-align: center;
+  background: #1D1D21;
+}
+
+.burger-menu {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 36px;
+  height: 36px;
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.burger-menu span {
+  width: 18px;
+  height: 2px;
+  background: #E8E4DB;
+}
+
+/* ---------- Inventory panel (dark) ---------- */
+
+.inventory-panel {
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.category-tabs__tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid #37373D;
+  background: transparent;
+  color: #E8E4DB;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.category-tabs__tab--active {
+  background: #C4761F;
+  color: #17171B;
+  border-color: #C4761F;
+  font-weight: 600;
+}
+
+.inventory-panel__create-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px;
+  background: #C4761F;
+  color: #17171B;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ---------- Inventory grid: 5x10 image slots ---------- */
+
+.inventory-slot-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
+  padding: 4px;
 }
 
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
+.inventory-slot {
+  aspect-ratio: 1;
+  background: #1D1D21;
+  border: 1px solid #37373D;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
 }
 
-.ticks {
-  position: relative;
+.inventory-slot:hover {
+  border-color: #C4761F;
+}
+
+.inventory-slot--selected {
+  border-color: #C4761F;
+  border-width: 2px;
+}
+
+.inventory-slot--empty {
+  cursor: default;
+}
+
+.inventory-slot img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
+.inventory-slot__placeholder {
+  width: 60%;
+  height: 60%;
+  background: #2C2C31;
+  border-radius: 4px;
+}
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
+/* ---------- Item detail panel: styled like a traditional D&D stat block ---------- */
+
+.item-detail-panel {
+  position: relative;
+  background: #FBF1DC;
+  color: #241E14;
+  border: 1px solid #7A2E12;
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-family: 'Spectral', serif;
+}
+
+.item-detail-panel__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #7A2E12;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.7;
+  font-family: 'Inter', sans-serif;
+}
+
+.item-detail-panel__close:hover {
+  opacity: 1;
+}
+
+.item-detail-panel__name {
+  font-family: 'Cinzel', serif;
+  color: #7A2E12;
+  margin: 0 0 2px 0;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+
+.item-detail-panel__rule {
+  height: 4px;
+  background: linear-gradient(to right, #7A2E12, #C4761F);
+  border-radius: 2px;
+  margin: 4px 0 8px 0;
+}
+
+.item-detail-panel__meta {
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+.item-detail-panel__plot-flag {
+  background: #7A2E12;
+  color: #FBF1DC;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-style: normal;
+  font-family: 'Inter', sans-serif;
+  margin-left: 6px;
+}
+
+.item-detail-panel__description {
+  font-size: 14px;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+.item-detail-panel__properties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  border-top: 1px solid #7A2E1244;
+  padding-top: 8px;
+}
+
+.item-detail-panel__property {
+  font-size: 13px;
+}
+
+.item-detail-panel__property dt {
+  font-weight: 700;
+  display: inline;
+  text-transform: capitalize;
+}
+
+.item-detail-panel__property dd {
+  margin: 0;
+  display: inline;
+}
+
+.item-detail-panel__property dt::after {
+  content: ": ";
 }

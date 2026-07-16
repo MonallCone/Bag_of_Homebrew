@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { CharacterSheetPage } from './Components/CharacterSheet/CharacterSheetPage';
+import './App.css';
 
 const API_BASE = 'https://localhost:7238';
 
 interface User {
-  email: string;
-  name: string;
+  displayName: string;
 }
 
 function App() {
@@ -12,32 +13,18 @@ function App() {
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
-      .then(res => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json() : null))
       .then(setUser)
       .catch(() => setUser(null));
   }, []);
 
-  const logout = async () => {
-    await fetch(`${API_BASE}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-    setUser(null);
-  };
-
   if (user === 'loading') return <p>Checking session...</p>;
 
-  if (user) {
-    return (
-      <div>
-        <p>Welcome, {user.name} ({user.email})</p>
-        <button onClick={logout}>Logout</button>
-      </div>
-    );
+  if (!user) {
+    return <a href={`${API_BASE}/api/auth/login`}>Login with Google</a>;
   }
 
-  // Full page navigation, not fetch — Google's flow requires a real redirect
-  return <a href={`${API_BASE}/api/auth/login`}>Login with Google</a>;
+  return <CharacterSheetPage characterName="Test Character" />;
 }
 
 export default App;
