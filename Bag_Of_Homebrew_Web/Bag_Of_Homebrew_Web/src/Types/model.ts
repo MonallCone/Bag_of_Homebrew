@@ -1,4 +1,4 @@
-export type ItemCategory = 'Weapon' | 'Armour' | 'Consumable' | 'Misc';
+export type ItemCategory = 'Weapon' | 'Armour' | "Accessory" | 'Consumable' | 'Misc';
 export type ItemRarity = 'Common' | 'Uncommon' | 'Rare' | 'VeryRare' | 'Legendary' | 'Artifact';
 
 export interface Item {
