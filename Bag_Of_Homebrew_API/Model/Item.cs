@@ -1,6 +1,6 @@
 ﻿namespace Bag_Of_Homebrew_API.Model
 {
-    public enum ItemCategory { Weapon, Armour, Consumable, Misc }
+    public enum ItemCategory { Weapon, Armour, Accessory, Consumable, Misc }
     public enum ItemRarity { Common, Uncommon, Rare, VeryRare, Legendary, Artifact }
 
     public class Item

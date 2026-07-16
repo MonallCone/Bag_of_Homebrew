@@ -1,14 +1,15 @@
 import type { Item } from '../../Types/model';
 
-const GRID_SIZE = 50; // 5 columns x 10 rows
+const GRID_SIZE = 50;
 
 interface Props {
   items: Item[];
   selectedItemId: string | null;
   onSelect: (item: Item) => void;
+  onContextMenu: (item: Item, x: number, y: number) => void;
 }
 
-export function InventoryGrid({ items, selectedItemId, onSelect }: Props) {
+export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu }: Props) {
   const slots = Array.from({ length: GRID_SIZE }, (_, i) => items[i] ?? null);
 
   return (
@@ -20,6 +21,11 @@ export function InventoryGrid({ items, selectedItemId, onSelect }: Props) {
             item && item.id === selectedItemId ? 'inventory-slot--selected' : ''
           }`}
           onClick={() => item && onSelect(item)}
+          onContextMenu={(e) => {
+            if (!item) return;
+            e.preventDefault();
+            onContextMenu(item, e.clientX, e.clientY);
+          }}
         >
           {item ? (
             item.imageUrl ? (

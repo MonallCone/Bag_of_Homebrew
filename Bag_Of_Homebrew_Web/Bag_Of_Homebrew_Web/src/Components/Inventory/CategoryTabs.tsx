@@ -6,6 +6,7 @@ const TABS: { value: TabValue; label: string }[] = [
   { value: 'All', label: 'All' },
   { value: 'Weapon', label: 'Weapons' },
   { value: 'Armour', label: 'Armour' },
+  { value: 'Accessory', label: 'Accessories' },
   { value: 'Consumable', label: 'Consumables' },
   { value: 'Misc', label: 'Misc' },
   { value: 'PlotItems', label: 'Plot Items' },
