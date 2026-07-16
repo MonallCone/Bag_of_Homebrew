@@ -1,9 +1,15 @@
+using Bag_Of_Homebrew_API.Data;
+using Bag_Of_Homebrew_API.Model;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -11,7 +17,11 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
-.AddCookie()
+.AddCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+})
 .AddGoogle(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
@@ -47,16 +57,24 @@ app.MapPost("/api/auth/logout", async (HttpContext ctx) =>
     return Results.Ok();
 });
 
-app.MapGet("/api/auth/me", (HttpContext ctx) =>
+app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
 {
     if (ctx.User.Identity?.IsAuthenticated != true)
         return Results.Unauthorized();
 
-    return Results.Ok(new
+    var googleId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+    var email = ctx.User.FindFirst(ClaimTypes.Email)?.Value!;
+    var name = ctx.User.FindFirst(ClaimTypes.Name)?.Value!;
+
+    var user = await db.Users.FirstOrDefaultAsync(u => u.GoogleId == googleId);
+    if (user is null)
     {
-        email = ctx.User.FindFirst(ClaimTypes.Email)?.Value,
-        name = ctx.User.FindFirst(ClaimTypes.Name)?.Value
-    });
+        user = new User { GoogleId = googleId, Email = email, DisplayName = name };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+    }
+
+    return Results.Ok(new { user.Id, user.Email, user.DisplayName });
 });
 
 app.Run();
