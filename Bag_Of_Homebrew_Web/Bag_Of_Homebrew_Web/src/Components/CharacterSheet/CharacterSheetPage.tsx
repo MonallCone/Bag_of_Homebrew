@@ -8,7 +8,7 @@ import { InventoryPanel } from '../Inventory/InventoryPanel';
 import { PdfDropzone } from '../PdfDropZone/PdfDropzone';
 import { BurgerMenu } from '../Nav/BurgerMenu';
 import type { CreateItemPayload } from '../Inventory/CreateItemModal';
-import type { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { validSlotsFor } from '../Inventory/ItemSlotRules';
 
 const API_BASE = 'https://localhost:7238';
@@ -44,6 +44,11 @@ interface Props {
 export function CharacterSheetPage({ characterId, characterName }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
+  const [draggedItem, setDraggedItem] = useState<Item | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   const loadItems = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/items`, {
@@ -105,6 +110,25 @@ export function CharacterSheetPage({ characterId, characterName }: Props) {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const item = items.find((i) => i.id === event.active.id);
+    setDraggedItem(item ?? null);
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    setDraggedItem(null);
+    if(!over) return;
+
+    const item = items.find((i) => i.id === active.id);
+    if(!item) return;
+
+    const slotType = over.id as SlotType;
+    if(validSlotsFor(item).includes(slotType)) {
+      equipItem(item.id, slotType);
+    }
+  }
+
   const bySlotOrder = (order: SlotType[]): EquipmentSlotData[] =>
     order.map((t) => slots.find((s) => s.slotType === t) ?? { slotType: t, item: null });
 
@@ -112,6 +136,7 @@ export function CharacterSheetPage({ characterId, characterName }: Props) {
   const unequippedItems = items.filter((i) => !equippedIds.has(i.id));
 
   return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
       <BurgerMenu />
       <PdfDropzone />
@@ -119,14 +144,19 @@ export function CharacterSheetPage({ characterId, characterName }: Props) {
       <div className="character-sheet-page__center">
         <h1 className="character-sheet-page__name">{characterName}</h1>
         <div className="character-sheet-page__slots-row">
-          <EquipmentColumn slots={bySlotOrder(ARMOUR_ORDER)} onUnequip={unequipSlot} />
+          <EquipmentColumn slots={bySlotOrder(ARMOUR_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
           <CharacterPortrait characterName={characterName} />
-          <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} />
+          <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
         </div>
-        <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} />
+        <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
       </div>
 
       <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} />
     </div>
+
+    <DragOverlay>
+      {draggedItem && <div className="drag-preview">{draggedItem.name}</div>}
+    </DragOverlay>
+    </DndContext>
   );
 }

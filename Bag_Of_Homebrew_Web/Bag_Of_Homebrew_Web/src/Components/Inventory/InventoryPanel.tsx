@@ -26,23 +26,26 @@ export function InventoryPanel({ items, onCreateItem, onEquip }: Props) {
     return items.filter((i) => i.category === activeTab);
   }, [items, activeTab]);
 
-  return (
+ return (
     <div className="inventory-panel">
       <CategoryTabs active={activeTab} onChange={setActiveTab} />
-      <button className="inventory-panel__create-btn" onClick={() => setShowCreateModal(true)}>
-        + Create Item
-      </button>
 
-      {selectedItem && (
-        <ItemDetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
-      )}
+      <div className="inventory-folder-body">
+        <button className="inventory-panel__create-btn" onClick={() => setShowCreateModal(true)}>
+          + Create Item
+        </button>
 
-      <InventoryGrid
-        items={filteredItems}
-        selectedItemId={selectedItem?.id ?? null}
-        onSelect={setSelectedItem}
-        onContextMenu={(item, x, y) => setContextMenu({ item, x, y })}
-      />
+        {selectedItem && (
+          <ItemDetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
+        )}
+
+        <InventoryGrid
+          items={filteredItems}
+          selectedItemId={selectedItem?.id ?? null}
+          onSelect={setSelectedItem}
+          onContextMenu={(item, x, y) => setContextMenu({ item, x, y })}
+        />
+      </div>
 
       {showCreateModal && (
         <CreateItemModal onClose={() => setShowCreateModal(false)} onCreate={onCreateItem} />
