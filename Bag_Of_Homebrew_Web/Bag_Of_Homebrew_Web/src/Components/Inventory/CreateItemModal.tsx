@@ -14,6 +14,7 @@ export interface CreateItemPayload {
   homebrewDescription: string;
   propertiesJson: string;
   imageUrl : string | null;
+  quantity?: number;
 }
 
 interface Props {
@@ -49,7 +50,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
         return props;
       }
       case 'Consumable':
-        return { quantity: Number(quantity) || 1, effect };
+        return { effect };
       case 'Accessory':
       case 'Misc':
         return {};
@@ -71,7 +72,8 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
         isPlotFlagged,
         homebrewDescription,
         propertiesJson: JSON.stringify(buildProperties()),
-        imageUrl
+        imageUrl,
+        quantity: category === 'Consumable' ? Number(quantity) || 1 : undefined,
       });
       onClose();
     } catch {

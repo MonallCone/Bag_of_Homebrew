@@ -8,9 +8,10 @@ interface Props {
   onEquip: (itemId: string, slotType: SlotType) => void;
   onDeleteRequest: (item: Item) => void;
   onClose: () => void;
+  onAdjustQuantity: (itemId: string, delta: number) => void;
 }
 
-export function ItemContextMenu({ item, x, y, onEquip, onClose, onDeleteRequest }: Props) {
+export function ItemContextMenu({ item, x, y, onEquip, onClose, onDeleteRequest, onAdjustQuantity }: Props) {
   const slots = validSlotsFor(item);
 
   return (
@@ -39,6 +40,15 @@ export function ItemContextMenu({ item, x, y, onEquip, onClose, onDeleteRequest 
               Equip: {SLOT_LABELS[slot]}
             </button>
           ))
+        )}
+        {item.category === 'Consumable' && (
+          <button
+            className="context-menu__item"
+            onClick={() => { onAdjustQuantity(item.id, -1); onClose(); }}
+            disabled={(item.quantity ?? 0) <= 0}
+          >
+            Use one ({item.quantity ?? 0} left)
+          </button>
         )}
         <div className="context-menu__divider" />
         <button

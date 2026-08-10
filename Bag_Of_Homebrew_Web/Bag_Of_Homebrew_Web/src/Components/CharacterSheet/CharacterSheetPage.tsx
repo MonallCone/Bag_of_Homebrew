@@ -161,6 +161,16 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     }
   };
 
+  const adjustQuantity = async (itemId: string, delta: number) => {
+    const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/quantity`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delta }),
+    });
+    if (res.ok) await loadItems();
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
@@ -182,7 +192,7 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
         <div className="character-sheet-page__bottom-section" />
       </div>
 
-      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem}/>
+      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem} onAdjustQuantity={adjustQuantity}/>
     </div>
 
     <DragOverlay>

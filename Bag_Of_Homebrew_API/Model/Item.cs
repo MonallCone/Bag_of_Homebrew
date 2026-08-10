@@ -24,5 +24,7 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public string? ImageUrl { get; set; }
+
+        public int? Quantity { get; set;  }
     }
 }

@@ -8,9 +8,10 @@ export interface Item {
   rarity: ItemRarity;
   isPlotFlagged: boolean;
   homebrewDescription?: string;
-  imageUrl?: string; // new — blank/placeholder for now until item images are supported
+  imageUrl?: string;
   properties: Record<string, unknown>;
   createdAt: string;
+  quantity?: number;
 }
 
 export type SlotType =

@@ -10,9 +10,10 @@ interface SlotProps {
   isSelected: boolean;
   onSelect: (item: Item) => void;
   onContextMenu: (item: Item, x: number, y: number) => void;
+  onAdjustQuantity: (itemId: string, delta: number) => void;
 }
 
-function DraggableSlot({ item, isSelected, onSelect, onContextMenu }: SlotProps) {
+function DraggableSlot({ item, isSelected, onSelect, onContextMenu, onAdjustQuantity }: SlotProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id });
 
   return (
@@ -36,6 +37,21 @@ function DraggableSlot({ item, isSelected, onSelect, onContextMenu }: SlotProps)
       )}
 
       {item.isPlotFlagged && <span className="plot-dot" />}
+
+      {item.category === 'Consumable' && (
+        <div className="qty-stepper" onPointerDown={(e) => e.stopPropagation()}>
+          <button
+            className="qty-stepper__btn"
+            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, -1); }}
+            disabled={(item.quantity ?? 0) <= 0}
+          >−</button>
+          <span className="qty-stepper__count">{item.quantity ?? 0}</span>
+          <button
+            className="qty-stepper__btn"
+            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, 1); }}
+          >+</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -45,9 +61,10 @@ interface Props {
   selectedItemId: string | null;
   onSelect: (item: Item) => void;
   onContextMenu: (item: Item, x: number, y: number) => void;
+  onAdjustQuantity: (itemId: string, delta: number) => void;
 }
 
-export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu }: Props) {
+export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu, onAdjustQuantity }: Props) {
   const slots = Array.from({ length: GRID_SIZE }, (_, i) => items[i] ?? null);
 
   return (
@@ -60,6 +77,7 @@ export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu }
             isSelected={item.id === selectedItemId}
             onSelect={onSelect}
             onContextMenu={onContextMenu}
+            onAdjustQuantity={onAdjustQuantity}
           />
         ) : (
           <div key={`empty-${i}`} className="inventory-slot inventory-slot--empty" />

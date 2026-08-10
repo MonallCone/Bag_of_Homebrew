@@ -17,9 +17,10 @@ interface Props {
   selectedItem: Item | null;
   onSelectItem: (item: Item | null) => void;
   onDelete: (itemId: string) => void;
+  onAdjustQuantity: (itemId: string, delta: number) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -62,6 +63,7 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           selectedItemId={selectedItem?.id ?? null}
           onSelect={onSelectItem}
           onContextMenu={(item, x, y) => setContextMenu({ item, x, y })}
+          onAdjustQuantity={onAdjustQuantity}
         />
       </div>
 
@@ -77,6 +79,7 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           onEquip={onEquip}
           onDeleteRequest={(item) => setPendingDelete(item)}
           onClose={() => setContextMenu(null)}
+          onAdjustQuantity={onAdjustQuantity}
         />
       )}
 

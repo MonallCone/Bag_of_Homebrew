@@ -131,7 +131,8 @@ app.MapGet("/api/characters/{characterId:guid}/items", async (Guid characterId, 
             i.HomebrewDescription,
             i.PropertiesJson,
             i.ImageUrl,
-            i.CreatedAt
+            i.CreatedAt,
+            i.Quantity
         })
         .ToListAsync();
 
@@ -166,7 +167,8 @@ app.MapPost("/api/characters/{characterId:guid}/items", async (
         IsPlotFlagged = request.IsPlotFlagged,
         HomebrewDescription = request.HomebrewDescription,
         PropertiesJson = request.PropertiesJson ?? "{}",
-        ImageUrl = request.ImageUrl
+        ImageUrl = request.ImageUrl,
+        Quantity = category == ItemCategory.Consumable ? (request.Quantity ?? 1) : null,
     };
 
     db.Items.Add(item);
@@ -182,7 +184,8 @@ app.MapPost("/api/characters/{characterId:guid}/items", async (
         item.HomebrewDescription,
         item.PropertiesJson,
         item.CreatedAt,
-        item.ImageUrl
+        item.ImageUrl,
+        item.Quantity
     });
 });
 
@@ -210,7 +213,8 @@ app.MapGet("/api/characters/{characterId:guid}/slots", async (Guid characterId, 
                 s.Item.HomebrewDescription,
                 s.Item.PropertiesJson,
                 s.Item.CreatedAt,
-                s.Item.ImageUrl
+                s.Item.ImageUrl,
+                s.Item.Quantity
             }
         })
         .ToListAsync();
@@ -365,6 +369,26 @@ app.MapDelete("/api/characters/{characterId:guid}/items/{itemId:guid}", async (
     return Results.Ok();
 });
 
+app.MapPatch("/api/characters/{characterId:guid}/items/{itemId:guid}/quantity", async (
+    Guid characterId, Guid itemId, AdjustQuantityRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var ownsCharacter = await db.Characters.AnyAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (!ownsCharacter) return Results.NotFound();
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.CharacterId == characterId);
+    if (item is null) return Results.NotFound();
+    if (item.Category != ItemCategory.Consumable) return Results.BadRequest("Not a consumable.");
+
+    var current = item.Quantity ?? 0;
+    item.Quantity = Math.Max(0, current + request.Delta);  // floors at 0, never deletes
+
+    await db.SaveChangesAsync();
+    return Results.Ok(new { item.Quantity });
+});
+
 app.Run();
 
 // ---------- Helpers ----------
@@ -426,8 +450,10 @@ record CreateItemRequest(
     bool IsPlotFlagged,
     string? HomebrewDescription,
     string? PropertiesJson,
-    string? ImageUrl);
+    string? ImageUrl,
+    int? Quantity);
 
 record EquipRequest(Guid ItemId, string SlotType);
 record UnequipRequest(string SlotType);
 record SetPortraitRequest(string? PortraitUrl);
+record AdjustQuantityRequest(int Delta);
