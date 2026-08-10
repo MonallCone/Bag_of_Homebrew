@@ -5,6 +5,7 @@ import { InventoryGrid } from './InventoryGrid';
 import { ItemDetailPanel } from './ItemDetailPanel';
 import { CreateItemModal, type CreateItemPayload } from './CreateItemModal';
 import { ItemContextMenu } from './ItemContextMenu';
+import { type SortOption, SORT_LABELS, sortItems } from './sortOptions';
 
 type TabValue = 'All' | ItemCategory | 'PlotItems';
 
@@ -20,12 +21,14 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
+  const [sort, setSort] = useState<SortOption>('newest');
 
-  const filteredItems = useMemo(() => {
-    if (activeTab === 'All') return items;
-    if (activeTab === 'PlotItems') return items.filter((i) => i.isPlotFlagged);
-    return items.filter((i) => i.category === activeTab);
-  }, [items, activeTab]);
+  const visibleItems = useMemo(() => {
+    let list = items;
+    if (activeTab === 'PlotItems') list = items.filter((i) => i.isPlotFlagged);
+    else if (activeTab !== 'All') list = items.filter((i) => i.category === activeTab);
+    return sortItems(list, sort);
+  }, [items, activeTab, sort]);
 
  return (
     <div className="inventory-panel">
@@ -40,8 +43,19 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           <ItemDetailPanel item={selectedItem} onClose={() => onSelectItem(null)} />
         )}
 
+        <div className="sort-bar">
+          <label className="sort-bar__label">
+            Sort
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)}>
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                <option key={key} value={key}>{SORT_LABELS[key]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         <InventoryGrid
-          items={filteredItems}
+          items={visibleItems}
           selectedItemId={selectedItem?.id ?? null}
           onSelect={onSelectItem}
           onContextMenu={(item, x, y) => setContextMenu({ item, x, y })}

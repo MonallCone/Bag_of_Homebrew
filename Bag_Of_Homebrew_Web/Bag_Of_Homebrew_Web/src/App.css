@@ -669,7 +669,7 @@ body {
 }
 
 .rarity-frame--legendary {
-  border: 2px solid #D8A33D row83D !important;
+  border: 2px solid #D8A33D !important;
   box-shadow: 0 0 12px rgba(216, 163, 61, 0.6), inset 0 0 8px rgba(216, 163, 61, 0.25);
 }
 
@@ -734,3 +734,33 @@ body {
 .item-detail-panel__rule--veryrare { background: linear-gradient(to right, #8B4FD8, #7A2E12); }
 .item-detail-panel__rule--legendary { background: linear-gradient(to right, #D8A33D, #7A2E12); }
 .item-detail-panel__rule--artifact { background: linear-gradient(to right, #A34A2A, #D8A33D); }
+
+.sort-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sort-bar__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8C897F;
+  font-family: 'Inter', sans-serif;
+}
+
+.sort-bar__label select {
+  background: #1D1D21;
+  border: 1px solid #37373D;
+  border-radius: 4px;
+  color: #E8E4DB;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+.sort-bar__label select:focus {
+  outline: none;
+  border-color: #C4761F;
+}
