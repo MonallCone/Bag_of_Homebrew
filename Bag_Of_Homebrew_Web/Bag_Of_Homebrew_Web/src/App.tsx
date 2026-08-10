@@ -9,6 +9,7 @@ interface Session {
   characterId: string;
   characterName: string;
   portraitUrl: string | null;
+  pdfSheetUrl: string | null;
 }
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
       characterId={session.characterId}
       characterName={session.characterName}
       initialPortraitUrl={session.portraitUrl}
+      initialSheetUrl={session.pdfSheetUrl}
     />
   );
 }

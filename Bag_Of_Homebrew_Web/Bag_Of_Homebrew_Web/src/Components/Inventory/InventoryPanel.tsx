@@ -83,7 +83,7 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
         />
       )}
 
-      // render the confirm modal:
+      {/* render the confirm modal */}
       {pendingDelete && (
         <ConfirmDeleteModal
           item={pendingDelete}

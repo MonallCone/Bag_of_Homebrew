@@ -40,13 +40,15 @@ interface Props {
   characterId: string;
   characterName: string;
   initialPortraitUrl: string | null;
+  initialSheetUrl: string | null;
 }
 
-export function CharacterSheetPage({ characterId, characterName, initialPortraitUrl }: Props) {
+export function CharacterSheetPage({ characterId, characterName, initialPortraitUrl, initialSheetUrl }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [sheetUrl, setSheetUrl] = useState<string | null>(initialSheetUrl);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -171,11 +173,21 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     if (res.ok) await loadItems();
   };
 
+  const handleSheetChange = async (url: string) => {
+    setSheetUrl(url || null);
+    await fetch(`${API_BASE}/api/characters/${characterId}/sheet`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfSheetUrl: url || null }),
+    });
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
       <BurgerMenu />
-      <PdfDropzone />
+      <PdfDropzone sheetUrl={sheetUrl} onSheetChange={handleSheetChange} />
 
       <div className="character-sheet-page__center">
         <h1 className="character-sheet-page__name">{characterName}</h1>

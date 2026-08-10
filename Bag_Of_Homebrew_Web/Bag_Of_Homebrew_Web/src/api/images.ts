@@ -1,6 +1,6 @@
 const API_BASE = 'https://localhost:7238';
 
-export async function uploadImage(file: File, kind: 'items' | 'portraits'): Promise<string> {
+export async function uploadImage(file: File, kind: 'items' | 'portraits' | 'sheets'): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
 

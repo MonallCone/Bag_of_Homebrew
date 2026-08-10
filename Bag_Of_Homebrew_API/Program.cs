@@ -104,7 +104,8 @@ app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
         user.DisplayName,
         CharacterId = current.Id,
         CharacterName = current.Name,
-        current.PortraitUrl
+        current.PortraitUrl,
+        current.PdfSheetUrl
     });
 });
 
@@ -277,8 +278,8 @@ app.MapPost("/api/images/{kind}", async (string kind, HttpRequest request, HttpC
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
 
-    if (kind is not ("items" or "portraits"))
-        return Results.BadRequest("Invalid image kind.");
+    if (kind is not ("items" or "portraits" or "sheets"))
+        return Results.BadRequest("Invalid upload kind.");
 
     if (!request.HasFormContentType)
         return Results.BadRequest("Expected multipart form data.");
@@ -288,21 +289,34 @@ app.MapPost("/api/images/{kind}", async (string kind, HttpRequest request, HttpC
     if (file is null || file.Length == 0)
         return Results.BadRequest("No file provided.");
 
-    // 5MB cap
-    const long maxBytes = 5 * 1024 * 1024;
-    if (file.Length > maxBytes)
-        return Results.BadRequest("Image must be under 5MB.");
-
-    // Content-type + extension allowlist
-    var allowed = new Dictionary<string, string>
+    string extension;
+    if (kind == "sheets")
     {
-        ["image/png"] = ".png",
-        ["image/jpeg"] = ".jpg",
-        ["image/webp"] = ".webp",
-        ["image/gif"] = ".gif"
-    };
-    if (!allowed.TryGetValue(file.ContentType, out var extension))
-        return Results.BadRequest("Only PNG, JPEG, WebP, or GIF images are allowed.");
+        if (file.ContentType != "application/pdf")
+            return Results.BadRequest("Character sheets ,ust be Pdf's");
+        extension = ".pdf";
+    }
+    else
+    {
+        var allowed = new Dictionary<string, string>
+        {
+            ["image/png"] = ".png",
+            ["image/jpeg"] = ".jpg",
+            ["image/webp"] = ".webp",
+            ["image/gif"] = ".gif"
+        };
+
+        if (!allowed.TryGetValue(file.ContentType, out var imgExt))
+            return Results.BadRequest("Only PNG, JPEG, WebP, or GIF images are allowed.");
+        extension = imgExt;
+
+
+        // 5MB cap
+        const long maxBytes = 5 * 1024 * 1024;
+        if (file.Length > maxBytes)
+            return Results.BadRequest("Image must be under 5MB.");
+
+    }
 
     // Server-generated filename: never trust the client's
     var fileName = $"{Guid.NewGuid()}{extension}";
@@ -389,6 +403,21 @@ app.MapPatch("/api/characters/{characterId:guid}/items/{itemId:guid}/quantity", 
     return Results.Ok(new { item.Quantity });
 });
 
+app.MapPut("/api/characters/{characterId:guid}/sheet", async (
+    Guid characterId, SetSheetRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    character.PdfSheetUrl = request.PdfSheetUrl;
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.Run();
 
 // ---------- Helpers ----------
@@ -457,3 +486,4 @@ record EquipRequest(Guid ItemId, string SlotType);
 record UnequipRequest(string SlotType);
 record SetPortraitRequest(string? PortraitUrl);
 record AdjustQuantityRequest(int Delta);
+record SetSheetRequest(string? PdfSheetUrl);
