@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import type { Item } from '../../Types/model';
 import {imageSrc} from '../../api/images'
+import { rarityFrameClass } from './rarityStyles';
 
 const GRID_SIZE = 50;
 
@@ -19,7 +20,7 @@ function DraggableSlot({ item, isSelected, onSelect, onContextMenu }: SlotProps)
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`inventory-slot ${isSelected ? 'inventory-slot--selected' : ''} ${
+      className={`inventory-slot ${rarityFrameClass(item)} ${isSelected ? 'inventory-slot--selected' : ''} ${
         isDragging ? 'inventory-slot--dragging' : ''
       }`}
       onClick={() => onSelect(item)}
@@ -31,8 +32,10 @@ function DraggableSlot({ item, isSelected, onSelect, onContextMenu }: SlotProps)
       {item.imageUrl ? (
         <img src={imageSrc(item.imageUrl)} alt={item.name} draggable={false} />
       ) : (
-        <div className="inventory-slot__placeholder" />
+        <div className="inventory-slot__placeholder" />    
       )}
+
+      {item.isPlotFlagged && <span className="plot-dot" />}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import type { EquipmentSlotData, Item, SlotType } from '../../Types/model';
 import { validSlotsFor } from '../Inventory/ItemSlotRules';
 import { imageSrc } from '../../api/images';
+import { rarityFrameClass } from '../Inventory/rarityStyles';
 import './SlotSocket.css';
 
 interface Props {
@@ -19,6 +20,7 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem }: Props) {
   const classes = [
     'slot-socket',
     slot.item ? 'slot-socket--filled' : '',
+    slot.item ? rarityFrameClass(slot.item) : '',
     isValidTarget ? 'slot-socket--valid-target' : '',
     isValidTarget && isOver ? 'slot-socket--over' : '',
   ]
@@ -44,6 +46,8 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem }: Props) {
       ) : (
         <span className="slot-socket__label">{label}</span>
       )}
+
+      {slot.item?.isPlotFlagged && <span className="plot-dot" />}
     </div>
   );
 }

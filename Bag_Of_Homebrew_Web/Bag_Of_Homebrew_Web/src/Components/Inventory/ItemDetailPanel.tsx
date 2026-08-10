@@ -12,19 +12,13 @@ export function ItemDetailPanel({ item, onClose }: Props) {
       <button className="item-detail-panel__close" onClick={onClose} aria-label="Close">
         ×
       </button>
-      {item.imageUrl && (
-        <img className="item-detail-panel__image" src={imageSrc(item.imageUrl)} alt={item.name} />
-      )}
+
       <h3 className="item-detail-panel__name">{item.name}</h3>
-      <div className="item-detail-panel__rule" />
+      <div className={`item-detail-panel__rule item-detail-panel__rule--${item.rarity.toLowerCase()}`} />
       <div className="item-detail-panel__meta">
         {item.rarity} {item.category}
         {item.isPlotFlagged && <span className="item-detail-panel__plot-flag">Plot Item</span>}
       </div>
-
-      {item.homebrewDescription && (
-        <p className="item-detail-panel__description">{item.homebrewDescription}</p>
-      )}
 
       <dl className="item-detail-panel__properties">
         {Object.entries(item.properties).map(([key, value]) => (
@@ -34,6 +28,16 @@ export function ItemDetailPanel({ item, onClose }: Props) {
           </div>
         ))}
       </dl>
+
+      <div className="item-detail-panel__body">
+        {item.imageUrl && (
+          <img className="item-detail-panel__image" src={imageSrc(item.imageUrl)} alt={item.name} />
+        )}
+        {item.homebrewDescription && (
+          <p className="item-detail-panel__description">{item.homebrewDescription}</p>
+        )}
+      </div>
+      
     </div>
   );
 }
