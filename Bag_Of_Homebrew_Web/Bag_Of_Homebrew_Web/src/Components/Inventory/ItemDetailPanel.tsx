@@ -1,4 +1,5 @@
 import type { Item } from '../../Types/model';
+import { imageSrc } from '../../api/images';
 
 interface Props {
   item: Item;
@@ -11,6 +12,9 @@ export function ItemDetailPanel({ item, onClose }: Props) {
       <button className="item-detail-panel__close" onClick={onClose} aria-label="Close">
         ×
       </button>
+      {item.imageUrl && (
+        <img className="item-detail-panel__image" src={imageSrc(item.imageUrl)} alt={item.name} />
+      )}
       <h3 className="item-detail-panel__name">{item.name}</h3>
       <div className="item-detail-panel__rule" />
       <div className="item-detail-panel__meta">

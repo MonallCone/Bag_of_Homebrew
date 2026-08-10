@@ -43,6 +43,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("ReactApp");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -102,7 +103,8 @@ app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
         user.Email,
         user.DisplayName,
         CharacterId = current.Id,
-        CharacterName = current.Name
+        CharacterName = current.Name,
+        current.PortraitUrl
     });
 });
 
@@ -128,6 +130,7 @@ app.MapGet("/api/characters/{characterId:guid}/items", async (Guid characterId, 
             i.IsPlotFlagged,
             i.HomebrewDescription,
             i.PropertiesJson,
+            i.ImageUrl,
             i.CreatedAt
         })
         .ToListAsync();
@@ -162,7 +165,8 @@ app.MapPost("/api/characters/{characterId:guid}/items", async (
         Rarity = rarity,
         IsPlotFlagged = request.IsPlotFlagged,
         HomebrewDescription = request.HomebrewDescription,
-        PropertiesJson = request.PropertiesJson ?? "{}"
+        PropertiesJson = request.PropertiesJson ?? "{}",
+        ImageUrl = request.ImageUrl
     };
 
     db.Items.Add(item);
@@ -177,7 +181,8 @@ app.MapPost("/api/characters/{characterId:guid}/items", async (
         item.IsPlotFlagged,
         item.HomebrewDescription,
         item.PropertiesJson,
-        item.CreatedAt
+        item.CreatedAt,
+        item.ImageUrl
     });
 });
 
@@ -204,7 +209,8 @@ app.MapGet("/api/characters/{characterId:guid}/slots", async (Guid characterId, 
                 s.Item.IsPlotFlagged,
                 s.Item.HomebrewDescription,
                 s.Item.PropertiesJson,
-                s.Item.CreatedAt
+                s.Item.CreatedAt,
+                s.Item.ImageUrl
             }
         })
         .ToListAsync();
@@ -258,6 +264,81 @@ app.MapPost("/api/characters/{characterId:guid}/unequip", async (
         .FirstAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
     slot.ItemId = null;
 
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapPost("/api/images/{kind}", async (string kind, HttpRequest request, HttpContext ctx, AppDbContext db, IWebHostEnvironment env) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (kind is not ("items" or "portraits"))
+        return Results.BadRequest("Invalid image kind.");
+
+    if (!request.HasFormContentType)
+        return Results.BadRequest("Expected multipart form data.");
+
+    var form = await request.ReadFormAsync();
+    var file = form.Files.FirstOrDefault();
+    if (file is null || file.Length == 0)
+        return Results.BadRequest("No file provided.");
+
+    // 5MB cap
+    const long maxBytes = 5 * 1024 * 1024;
+    if (file.Length > maxBytes)
+        return Results.BadRequest("Image must be under 5MB.");
+
+    // Content-type + extension allowlist
+    var allowed = new Dictionary<string, string>
+    {
+        ["image/png"] = ".png",
+        ["image/jpeg"] = ".jpg",
+        ["image/webp"] = ".webp",
+        ["image/gif"] = ".gif"
+    };
+    if (!allowed.TryGetValue(file.ContentType, out var extension))
+        return Results.BadRequest("Only PNG, JPEG, WebP, or GIF images are allowed.");
+
+    // Server-generated filename: never trust the client's
+    var fileName = $"{Guid.NewGuid()}{extension}";
+    var directory = Path.Combine(env.WebRootPath, "uploads", kind);
+    Directory.CreateDirectory(directory);
+
+    var fullPath = Path.Combine(directory, fileName);
+    await using (var stream = File.Create(fullPath))
+    {
+        await file.CopyToAsync(stream);
+    }
+
+    var url = $"/uploads/{kind}/{fileName}";
+    return Results.Ok(new { url });
+});
+
+app.MapGet("/api/images/defaults", (IWebHostEnvironment env) =>
+{
+    var directory = Path.Combine(env.WebRootPath, "defaults", "items");
+    if (!Directory.Exists(directory))
+        return Results.Ok(Array.Empty<object>());
+
+    var urls = Directory.GetFiles(directory)
+        .Select(f => $"/defaults/items/{Path.GetFileName(f)}")
+        .ToArray();
+
+    return Results.Ok(urls);
+});
+
+app.MapPut("/api/characters/{characterId:guid}/portrait", async (
+    Guid characterId, SetPortraitRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    character.PortraitUrl = request.PortraitUrl;
     await db.SaveChangesAsync();
     return Results.Ok();
 });
@@ -322,7 +403,9 @@ record CreateItemRequest(
     string Rarity,
     bool IsPlotFlagged,
     string? HomebrewDescription,
-    string? PropertiesJson);
+    string? PropertiesJson,
+    string? ImageUrl);
 
 record EquipRequest(Guid ItemId, string SlotType);
 record UnequipRequest(string SlotType);
+record SetPortraitRequest(string? PortraitUrl);

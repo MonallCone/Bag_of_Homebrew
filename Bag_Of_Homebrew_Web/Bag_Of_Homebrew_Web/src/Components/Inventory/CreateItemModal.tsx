@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ItemCategory, ItemRarity } from '../../Types/model';
+import { ImagePicker } from './ImagePicker';
 
 const RARITIES: ItemRarity[] = ['Common', 'Uncommon', 'Rare', 'VeryRare', 'Legendary', 'Artifact'];
 const CATEGORIES: ItemCategory[] = ['Weapon', 'Armour', "Accessory", 'Consumable', 'Misc'];
@@ -12,6 +13,7 @@ export interface CreateItemPayload {
   isPlotFlagged: boolean;
   homebrewDescription: string;
   propertiesJson: string;
+  imageUrl : string | null;
 }
 
 interface Props {
@@ -27,6 +29,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
   const [homebrewDescription, setHomebrewDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Category-specific fields
   const [damage, setDamage] = useState('');
@@ -68,6 +71,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
         isPlotFlagged,
         homebrewDescription,
         propertiesJson: JSON.stringify(buildProperties()),
+        imageUrl
       });
       onClose();
     } catch {
@@ -105,6 +109,8 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
             ))}
           </select>
         </label>
+
+        <ImagePicker value={imageUrl} onChange={setImageUrl}/>
 
         {category === 'Weapon' && (
           <>

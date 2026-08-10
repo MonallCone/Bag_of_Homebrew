@@ -1,5 +1,6 @@
 import { useDraggable } from '@dnd-kit/core';
 import type { Item } from '../../Types/model';
+import {imageSrc} from '../../api/images'
 
 const GRID_SIZE = 50;
 
@@ -28,7 +29,7 @@ function DraggableSlot({ item, isSelected, onSelect, onContextMenu }: SlotProps)
       }}
     >
       {item.imageUrl ? (
-        <img src={item.imageUrl} alt={item.name} />
+        <img src={imageSrc(item.imageUrl)} alt={item.name} draggable={false} />
       ) : (
         <div className="inventory-slot__placeholder" />
       )}

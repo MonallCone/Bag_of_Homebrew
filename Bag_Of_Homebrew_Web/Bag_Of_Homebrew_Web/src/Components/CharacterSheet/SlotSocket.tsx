@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { EquipmentSlotData, Item, SlotType } from '../../Types/model';
 import { validSlotsFor } from '../Inventory/ItemSlotRules';
+import { imageSrc } from '../../api/images';
 import './SlotSocket.css';
 
 interface Props {
@@ -35,7 +36,11 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem }: Props) {
       title={slot.item ? `${slot.item.name} (right-click to unequip)` : label}
     >
       {slot.item ? (
-        <span className="slot-socket__item-name">{slot.item.name}</span>
+        slot.item.imageUrl ? (
+          <img className="slot-socket__image" src={imageSrc(slot.item.imageUrl)} alt={slot.item.name} draggable={false} />
+        ) : (
+          <span className="slot-socket__item-name">{slot.item.name}</span>
+        )
       ) : (
         <span className="slot-socket__label">{label}</span>
       )}

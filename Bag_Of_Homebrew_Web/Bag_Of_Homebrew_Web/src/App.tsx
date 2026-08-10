@@ -8,6 +8,7 @@ interface Session {
   displayName: string;
   characterId: string;
   characterName: string;
+  portraitUrl: string | null;
 }
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
     <CharacterSheetPage
       characterId={session.characterId}
       characterName={session.characterName}
+      initialPortraitUrl={session.portraitUrl}
     />
   );
 }

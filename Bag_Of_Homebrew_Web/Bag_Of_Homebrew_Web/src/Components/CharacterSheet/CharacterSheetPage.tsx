@@ -39,9 +39,10 @@ const WEAPON_ORDER: SlotType[] = ['WeaponSet1Main', 'WeaponSet1Off', 'WeaponSet2
 interface Props {
   characterId: string;
   characterName: string;
+  initialPortraitUrl: string | null;
 }
 
-export function CharacterSheetPage({ characterId, characterName }: Props) {
+export function CharacterSheetPage({ characterId, characterName, initialPortraitUrl }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
@@ -135,6 +136,18 @@ export function CharacterSheetPage({ characterId, characterName }: Props) {
   const equippedIds = new Set(slots.filter((s) => s.item).map((s) => s.item!.id));
   const unequippedItems = items.filter((i) => !equippedIds.has(i.id));
 
+  const [portraitUrl, setPortraitUrl] = useState<string | null>(initialPortraitUrl);
+
+  const handlePortraitChange = async (url: string) => {
+    setPortraitUrl(url);
+    await fetch(`${API_BASE}/api/characters/${characterId}/portrait`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ portraitUrl: url }),
+    });
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
@@ -145,10 +158,15 @@ export function CharacterSheetPage({ characterId, characterName }: Props) {
         <h1 className="character-sheet-page__name">{characterName}</h1>
         <div className="character-sheet-page__slots-row">
           <EquipmentColumn slots={bySlotOrder(ARMOUR_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
-          <CharacterPortrait characterName={characterName} />
+          <CharacterPortrait
+            portraitUrl={portraitUrl}
+            characterName={characterName}
+            onPortraitChange={handlePortraitChange}
+          />
           <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
         </div>
         <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
+        <div className="character-sheet-page__bottom-section" />
       </div>
 
       <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} />
