@@ -20,17 +20,20 @@ body {
 .character-sheet-page {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(340px, 1fr) 2fr minmax(320px, 1fr);
-  gap: 24px;
-  padding: 24px;
-  min-height: 100vh;
+  grid-template-columns: 1fr 1fr 1fr;   /* equal thirds */
+  gap: 20px;
+  padding: 16px;
+  height: 100vh;        /* exactly the screen, no more */
+  overflow: hidden;     /* the page itself never scrolls */
 }
 
 .character-sheet-page__center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
 }
 
 .character-sheet-page__name {
@@ -43,13 +46,17 @@ body {
 .character-sheet-page__slots-row {
   display: flex;
   gap: 32px;
-  align-items: center;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
 }
 
 .equipment-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  justify-content: space-evenly;
+  gap: 0;
 }
 
 .weapon-row {
@@ -59,7 +66,7 @@ body {
 
 .character-portrait {
   width: 200px;
-  height: 340px;
+  align-self: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,17 +82,28 @@ body {
   font-size: 13px;
 }
 
+.character-sheet-page__bottom-section {
+  width: 100%;
+  min-height: 120px;
+  border: 1px dashed #37373D;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
 .pdf-dropzone {
   border: 2px dashed #37373D;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: #8C897F;
   font-size: 13px;
   padding: 16px;
   text-align: center;
   background: #1D1D21;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;    /* the dropped PDF scrolls inside here */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .burger-menu {
@@ -122,6 +140,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-height: 0;      /* allow children to shrink */
+  height: 100%;
 }
 
 .category-tabs {
