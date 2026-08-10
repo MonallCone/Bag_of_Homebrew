@@ -10,9 +10,10 @@ interface Props {
   label: string;
   onUnequip: (slotType: SlotType) => void;
   draggedItem: Item | null;
+  onItemClick: (item: Item) => void;
 }
 
-export function SlotSocket({ slot, label, onUnequip, draggedItem }: Props) {
+export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: slot.slotType });
 
   const isValidTarget = draggedItem !== null && validSlotsFor(draggedItem).includes(slot.slotType);
@@ -36,6 +37,9 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem }: Props) {
         if (slot.item) onUnequip(slot.slotType);
       }}
       title={slot.item ? `${slot.item.name} (right-click to unequip)` : label}
+      onClick={() => {
+        if(slot.item) onItemClick(slot.item);
+      }}
     >
       {slot.item ? (
         slot.item.imageUrl ? (

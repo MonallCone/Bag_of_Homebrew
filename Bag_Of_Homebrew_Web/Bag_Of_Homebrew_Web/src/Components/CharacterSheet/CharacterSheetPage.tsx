@@ -46,6 +46,7 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -157,19 +158,19 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
       <div className="character-sheet-page__center">
         <h1 className="character-sheet-page__name">{characterName}</h1>
         <div className="character-sheet-page__slots-row">
-          <EquipmentColumn slots={bySlotOrder(ARMOUR_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
+          <EquipmentColumn slots={bySlotOrder(ARMOUR_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
           <CharacterPortrait
             portraitUrl={portraitUrl}
             characterName={characterName}
             onPortraitChange={handlePortraitChange}
           />
-          <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
+          <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
         </div>
-        <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} />
+        <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
         <div className="character-sheet-page__bottom-section" />
       </div>
 
-      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} />
+      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem}/>
     </div>
 
     <DragOverlay>

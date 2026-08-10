@@ -12,11 +12,12 @@ interface Props {
   items: Item[];
   onCreateItem: (payload: CreateItemPayload) => Promise<void>;
   onEquip: (itemId: string, slotType: SlotType) => void;
+  selectedItem: Item | null;
+  onSelectItem: (item: Item | null) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
 
@@ -36,13 +37,13 @@ export function InventoryPanel({ items, onCreateItem, onEquip }: Props) {
         </button>
 
         {selectedItem && (
-          <ItemDetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
+          <ItemDetailPanel item={selectedItem} onClose={() => onSelectItem(null)} />
         )}
 
         <InventoryGrid
           items={filteredItems}
           selectedItemId={selectedItem?.id ?? null}
-          onSelect={setSelectedItem}
+          onSelect={onSelectItem}
           onContextMenu={(item, x, y) => setContextMenu({ item, x, y })}
         />
       </div>
