@@ -1,5 +1,6 @@
 import type { Item } from '../../Types/model';
 import { imageSrc } from '../../api/images';
+import ReactMarkdown from 'react-markdown';
 
 interface Props {
   item: Item;
@@ -34,10 +35,12 @@ export function ItemDetailPanel({ item, onClose }: Props) {
           <img className="item-detail-panel__image" src={imageSrc(item.imageUrl)} alt={item.name} />
         )}
         {item.homebrewDescription && (
-          <p className="item-detail-panel__description">{item.homebrewDescription}</p>
+          <div className="item-detail-panel__description">
+            <ReactMarkdown>{item.homebrewDescription}</ReactMarkdown>
+          </div>
         )}
       </div>
-      
+
     </div>
   );
 }

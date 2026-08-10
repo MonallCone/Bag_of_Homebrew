@@ -167,6 +167,9 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
             rows={3}
             placeholder="Freeform abilities, lore, or notes"
           />
+          <span className="modal__hint">
+            Formatting: **bold**, *italic*, ***both***, - bullet
+          </span>
         </label>
 
         <label className="modal__checkbox">

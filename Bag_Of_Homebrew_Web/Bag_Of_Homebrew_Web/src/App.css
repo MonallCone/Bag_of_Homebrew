@@ -337,9 +337,44 @@ body {
 
 .item-detail-panel__description {
   font-size: 14px;
-  font-style: italic;
   margin: 0;
   flex: 1;
+}
+
+.item-detail-panel__description p {
+  font-style: italic;   /* keeps the flavor-text feel for plain paragraphs */
+  margin: 0 0 6px 0;
+}
+
+.item-detail-panel__description p:last-child {
+  margin-bottom: 0;
+}
+
+.item-detail-panel__description strong {
+  font-weight: 700;
+  font-style: normal;   /* bold shouldn't also be italic unless *** used */
+}
+
+.item-detail-panel__description em {
+  font-style: italic;
+}
+
+.item-detail-panel__description ul {
+  margin: 4px 0;
+  padding-left: 4px;
+  list-style-position: inside;
+}
+
+.item-detail-panel__description li {
+  font-style: normal;
+  margin-bottom: 2px;
+  padding-left: 2px;
+}
+
+.modal__hint {
+  font-size: 11px;
+  color: #6E6E74;
+  font-style: italic;
 }
 
 .item-detail-panel__properties {
