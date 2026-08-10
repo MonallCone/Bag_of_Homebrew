@@ -764,3 +764,30 @@ body {
   outline: none;
   border-color: #C4761F;
 }
+
+.modal--confirm {
+  width: 340px;
+}
+
+.confirm-delete__text {
+  font-size: 13px;
+  color: #E8E4DB;
+  margin: 0;
+}
+
+.modal__btn--danger {
+  background: #B03A3A;
+  color: #E8E4DB;
+  font-weight: 600;
+}
+
+.context-menu__divider {
+  height: 1px;
+  background: #37373D;
+  margin: 4px 6px;
+}
+
+.context-menu__item--danger:hover {
+  background: #B03A3A;
+  color: #E8E4DB;
+}

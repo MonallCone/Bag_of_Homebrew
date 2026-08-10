@@ -149,6 +149,18 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     });
   };
 
+  const deleteItem = async (itemId: string) => {
+    const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (res.ok) {
+      // Clear selection if the deleted item was being viewed
+      if (selectedItem?.id === itemId) setSelectedItem(null);
+      await Promise.all([loadItems(), loadSlots()]);
+    }
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
@@ -170,7 +182,7 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
         <div className="character-sheet-page__bottom-section" />
       </div>
 
-      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem}/>
+      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem}/>
     </div>
 
     <DragOverlay>

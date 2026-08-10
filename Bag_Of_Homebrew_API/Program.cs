@@ -343,6 +343,28 @@ app.MapPut("/api/characters/{characterId:guid}/portrait", async (
     return Results.Ok();
 });
 
+app.MapDelete("/api/characters/{characterId:guid}/items/{itemId:guid}", async (
+    Guid characterId, Guid itemId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var ownsCharacter = await db.Characters.AnyAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (!ownsCharacter) return Results.NotFound();
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.CharacterId == characterId);
+    if (item is null) return Results.NotFound();
+
+    // If equipped, clear the slot first
+    var slot = await db.EquipmentSlots
+        .FirstOrDefaultAsync(s => s.CharacterId == characterId && s.ItemId == itemId);
+    if (slot is not null) slot.ItemId = null;
+
+    db.Items.Remove(item);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.Run();
 
 // ---------- Helpers ----------

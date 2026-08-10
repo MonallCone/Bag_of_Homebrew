@@ -6,10 +6,11 @@ interface Props {
   x: number;
   y: number;
   onEquip: (itemId: string, slotType: SlotType) => void;
+  onDeleteRequest: (item: Item) => void;
   onClose: () => void;
 }
 
-export function ItemContextMenu({ item, x, y, onEquip, onClose }: Props) {
+export function ItemContextMenu({ item, x, y, onEquip, onClose, onDeleteRequest }: Props) {
   const slots = validSlotsFor(item);
 
   return (
@@ -39,6 +40,16 @@ export function ItemContextMenu({ item, x, y, onEquip, onClose }: Props) {
             </button>
           ))
         )}
+        <div className="context-menu__divider" />
+        <button
+          className="context-menu__item context-menu__item--danger"
+          onClick={() => {
+            onDeleteRequest(item);
+            onClose();
+          }}
+        >
+          Delete
+        </button>
         {/* Later: Send to DM Vault / Send to player (party mode) */}
       </div>
     </>

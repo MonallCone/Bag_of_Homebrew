@@ -6,6 +6,7 @@ import { ItemDetailPanel } from './ItemDetailPanel';
 import { CreateItemModal, type CreateItemPayload } from './CreateItemModal';
 import { ItemContextMenu } from './ItemContextMenu';
 import { type SortOption, SORT_LABELS, sortItems } from './sortOptions';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 type TabValue = 'All' | ItemCategory | 'PlotItems';
 
@@ -15,13 +16,15 @@ interface Props {
   onEquip: (itemId: string, slotType: SlotType) => void;
   selectedItem: Item | null;
   onSelectItem: (item: Item | null) => void;
+  onDelete: (itemId: string) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
   const [sort, setSort] = useState<SortOption>('newest');
+  const [pendingDelete, setPendingDelete] = useState<Item | null>(null);
 
   const visibleItems = useMemo(() => {
     let list = items;
@@ -72,7 +75,20 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           x={contextMenu.x}
           y={contextMenu.y}
           onEquip={onEquip}
+          onDeleteRequest={(item) => setPendingDelete(item)}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      // render the confirm modal:
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          item={pendingDelete}
+          onConfirm={() => {
+            onDelete(pendingDelete.id);
+            setPendingDelete(null);
+          }}
+          onCancel={() => setPendingDelete(null)}
         />
       )}
     </div>
