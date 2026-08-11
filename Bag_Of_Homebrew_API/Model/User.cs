@@ -9,5 +9,7 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<Character> Characters { get; set; } = new();
+
+        public bool IsPaid { get; set; } = false;
     }
 }

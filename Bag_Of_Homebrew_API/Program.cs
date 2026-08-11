@@ -96,6 +96,15 @@ app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
         user.Characters.Add(character);
     }
 
+    // Ensure the user has a vault (one per user)
+    var vault = await db.Vaults.FirstOrDefaultAsync(v => v.UserId == user.Id);
+    if (vault is null)
+    {
+        vault = new Vault { UserId = user.Id, Name = "Vault" };
+        db.Vaults.Add(vault);
+        await db.SaveChangesAsync();
+    }
+
     var current = user.Characters.First();
     return Results.Ok(new
     {
@@ -107,7 +116,175 @@ app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
         current.PortraitUrl,
         current.PdfSheetUrl,
         current.ManualAc,
+        VaultId = vault.Id,
+        user.IsPaid
     });
+});
+
+// GET vault items
+app.MapGet("/api/vaults/{vaultId:guid}/items", async (Guid vaultId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
+
+    var items = await db.Items
+        .Where(i => i.VaultId == vaultId)
+        .OrderByDescending(i => i.CreatedAt)
+        .Select(i => new
+        {
+            i.Id,
+            i.Name,
+            Category = i.Category.ToString(),
+            Rarity = i.Rarity.ToString(),
+            i.IsPlotFlagged,
+            i.HomebrewDescription,
+            i.PropertiesJson,
+            i.ImageUrl,
+            i.Quantity,
+            i.CreatedAt
+        })
+        .ToListAsync();
+
+    return Results.Ok(items);
+});
+
+// CREATE vault item
+app.MapPost("/api/vaults/{vaultId:guid}/items", async (
+    Guid vaultId, CreateItemRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest("Item name is required.");
+    if (!Enum.TryParse<ItemCategory>(request.Category, out var category))
+        return Results.BadRequest("Invalid category.");
+    if (!Enum.TryParse<ItemRarity>(request.Rarity, out var rarity))
+        return Results.BadRequest("Invalid rarity.");
+
+    var item = new Item
+    {
+        VaultId = vaultId,
+        Name = request.Name.Trim(),
+        Category = category,
+        Rarity = rarity,
+        IsPlotFlagged = request.IsPlotFlagged,
+        HomebrewDescription = request.HomebrewDescription,
+        PropertiesJson = request.PropertiesJson ?? "{}",
+        ImageUrl = request.ImageUrl,
+        Quantity = category == ItemCategory.Consumable ? (request.Quantity ?? 1) : null
+    };
+
+    db.Items.Add(item);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        item.Id,
+        item.Name,
+        Category = item.Category.ToString(),
+        Rarity = item.Rarity.ToString(),
+        item.IsPlotFlagged,
+        item.HomebrewDescription,
+        item.PropertiesJson,
+        item.ImageUrl,
+        item.Quantity,
+        item.CreatedAt
+    });
+});
+
+// DELETE vault item
+app.MapDelete("/api/vaults/{vaultId:guid}/items/{itemId:guid}", async (
+    Guid vaultId, Guid itemId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == vaultId);
+    if (item is null) return Results.NotFound();
+
+    db.Items.Remove(item);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+// ADJUST quantity (vault)
+app.MapPatch("/api/vaults/{vaultId:guid}/items/{itemId:guid}/quantity", async (
+    Guid vaultId, Guid itemId, AdjustQuantityRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == vaultId);
+    if (item is null) return Results.NotFound();
+    if (item.Category != ItemCategory.Consumable) return Results.BadRequest("Not a consumable.");
+
+    var current = item.Quantity ?? 0;
+    item.Quantity = Math.Max(0, current + request.Delta);
+    await db.SaveChangesAsync();
+    return Results.Ok(new { item.Quantity });
+});
+
+// UPDATE properties (vault)
+app.MapPatch("/api/vaults/{vaultId:guid}/items/{itemId:guid}/properties", async (
+    Guid vaultId, Guid itemId, UpdatePropertiesRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == vaultId);
+    if (item is null) return Results.NotFound();
+
+    var existing = new Dictionary<string, object?>();
+    try
+    {
+        var parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(item.PropertiesJson);
+        if (parsed is not null) existing = parsed;
+    }
+    catch { }
+
+    foreach (var kvp in request.Properties)
+        existing[kvp.Key] = kvp.Value;
+
+    item.PropertiesJson = System.Text.Json.JsonSerializer.Serialize(existing);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapPost("/api/characters/{characterId:guid}/items/{itemId:guid}/return-to-vault", async (
+    Guid characterId, Guid itemId, ReturnToVaultRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    // Verify the character belongs to this user
+    var ownsCharacter = await db.Characters.AnyAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (!ownsCharacter) return Results.NotFound("Character not found.");
+
+    // Verify the target vault belongs to this user (in solo play, it's their own vault)
+    if (!await OwnsVault(request.VaultId, user, db))
+        return Results.NotFound("Vault not found.");
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.CharacterId == characterId);
+    if (item is null) return Results.NotFound("Item not found on this character.");
+
+    // If equipped, clear it from any slot(s) it occupies (two-handed = two slots)
+    var slots = await db.EquipmentSlots
+        .Where(s => s.CharacterId == characterId && s.ItemId == itemId)
+        .ToListAsync();
+    foreach (var s in slots) s.ItemId = null;
+
+    // Move ownership: character → vault
+    item.CharacterId = null;
+    item.VaultId = request.VaultId;
+
+    await db.SaveChangesAsync();
+    return Results.Ok();
 });
 
 app.MapGet("/api/characters/{characterId:guid}/items", async (Guid characterId, HttpContext ctx, AppDbContext db) =>
@@ -496,6 +673,134 @@ app.MapPut("/api/characters/{characterId:guid}/ac", async (
     return Results.Ok();
 });
 
+app.MapGet("/api/characters", async (HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var characters = await db.Characters
+        .Where(c => c.UserId == user.Id)
+        .OrderBy(c => c.CreatedAt)
+        .Select(c => new { c.Id, c.Name, c.PortraitUrl })
+        .ToListAsync();
+
+    return Results.Ok(characters);
+});
+
+app.MapGet("/api/characters/{characterId:guid}", async (Guid characterId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    return Results.Ok(new
+    {
+        character.Id,
+        character.Name,
+        character.PortraitUrl,
+        character.PdfSheetUrl,
+        character.ManualAc
+    });
+});
+
+app.MapPost("/api/vaults/{vaultId:guid}/items/{itemId:guid}/send-to-character", async (
+    Guid vaultId, Guid itemId, SendToCharacterRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (!await OwnsVault(vaultId, user, db))
+        return Results.NotFound("Vault not found.");
+
+    // The target character must belong to this user (solo play)
+    var ownsCharacter = await db.Characters.AnyAsync(c => c.Id == request.CharacterId && c.UserId == user.Id);
+    if (!ownsCharacter) return Results.NotFound("Character not found.");
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == vaultId);
+    if (item is null) return Results.NotFound("Item not found in this vault.");
+
+    // Move ownership: vault → character
+    item.VaultId = null;
+    item.CharacterId = request.CharacterId;
+
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapPost("/api/characters", async (CreateCharacterRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest("Character name is required.");
+
+    // Free-tier limit: 1 character. Paid: unlimited.
+    var characterCount = await db.Characters.CountAsync(c => c.UserId == user.Id);
+    if (!user.IsPaid && characterCount >= 1)
+        return Results.BadRequest("Free accounts are limited to one character. Upgrade to create more.");
+
+    var character = new Character { UserId = user.Id, Name = request.Name.Trim() };
+    db.Characters.Add(character);
+
+    foreach (var slotType in Enum.GetValues<SlotType>())
+    {
+        db.EquipmentSlots.Add(new EquipmentSlot
+        {
+            CharacterId = character.Id,
+            SlotType = slotType
+        });
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { character.Id, character.Name });
+});
+
+app.MapDelete("/api/characters/{characterId:guid}", async (Guid characterId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    // Delete the character's items outright
+    var items = await db.Items.Where(i => i.CharacterId == characterId).ToListAsync();
+    db.Items.RemoveRange(items);
+
+    // Delete its equipment slots
+    var slots = await db.EquipmentSlots.Where(s => s.CharacterId == characterId).ToListAsync();
+    db.EquipmentSlots.RemoveRange(slots);
+
+    db.Characters.Remove(character);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+// RENAME character
+app.MapPut("/api/characters/{characterId:guid}/name", async (
+    Guid characterId, RenameCharacterRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest("Name is required.");
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    character.Name = request.Name.Trim();
+    await db.SaveChangesAsync();
+    return Results.Ok(new { character.Id, character.Name });
+});
+
 app.Run();
 
 // ---------- Helpers ----------
@@ -568,6 +873,9 @@ static SlotType? PairedOffHand(SlotType main) => main switch
     _ => null
 };
 
+static async Task<bool> OwnsVault(Guid vaultId, User user, AppDbContext db)
+    => await db.Vaults.AnyAsync(v => v.Id == vaultId && v.UserId == user.Id);
+
 // ---------- Request records ----------
 
 record CreateItemRequest(
@@ -587,3 +895,7 @@ record AdjustQuantityRequest(int Delta);
 record SetSheetRequest(string? PdfSheetUrl);
 record UpdatePropertiesRequest(Dictionary<string, string> Properties);
 record SetAcRequest(string? ManualAc);
+record ReturnToVaultRequest(Guid VaultId);
+record SendToCharacterRequest(Guid CharacterId);
+record CreateCharacterRequest(string Name);
+record RenameCharacterRequest(string Name);

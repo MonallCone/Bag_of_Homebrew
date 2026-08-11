@@ -11,6 +11,7 @@ namespace Bag_Of_Homebrew_API.Data
         public DbSet<Character> Characters => Set<Character>();
         public DbSet<Item> Items => Set<Item>();
         public DbSet<EquipmentSlot> EquipmentSlots => Set<EquipmentSlot>();
+        public DbSet<Vault> Vaults => Set<Vault>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -21,6 +22,10 @@ namespace Bag_Of_Homebrew_API.Data
             modelBuilder.Entity<Item>()
                 .Property(i => i.PropertiesJson)
                 .HasColumnType("jsonb");
+
+            modelBuilder.Entity<Vault>()
+                .HasIndex(v => v.UserId)
+                .IsUnique();
         }
     }
 }

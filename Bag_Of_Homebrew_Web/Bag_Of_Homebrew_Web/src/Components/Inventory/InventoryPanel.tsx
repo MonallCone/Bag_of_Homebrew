@@ -13,14 +13,17 @@ type TabValue = 'All' | ItemCategory | 'PlotItems';
 interface Props {
   items: Item[];
   onCreateItem: (payload: CreateItemPayload) => Promise<void>;
-  onEquip: (itemId: string, slotType: SlotType) => void;
-  selectedItem: Item | null;
-  onSelectItem: (item: Item | null) => void;
   onDelete: (itemId: string) => void;
   onAdjustQuantity: (itemId: string, delta: number) => void;
+  selectedItem: Item | null;
+  onSelectItem: (item: Item | null) => void;
+  onEquip?: (itemId: string, slotType: SlotType, twoHanded?: boolean) => void;
+  onReturnToVault?: (itemId: string) => void;
+  sendToCharacterTargets?: { id: string; name: string }[];
+  onSendToCharacter?: (itemId: string, characterId: string) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -77,9 +80,12 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           x={contextMenu.x}
           y={contextMenu.y}
           onEquip={onEquip}
+          onReturnToVault={onReturnToVault}
           onDeleteRequest={(item) => setPendingDelete(item)}
-          onClose={() => setContextMenu(null)}
           onAdjustQuantity={onAdjustQuantity}
+          sendToCharacterTargets={sendToCharacterTargets}
+          onSendToCharacter={onSendToCharacter}
+          onClose={() => setContextMenu(null)}
         />
       )}
 

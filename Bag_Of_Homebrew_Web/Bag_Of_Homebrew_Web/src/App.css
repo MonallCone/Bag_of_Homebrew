@@ -108,8 +108,8 @@ body {
 
 .burger-menu {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 8px;
+  right: 8px;
   width: 36px;
   height: 36px;
   background: #232327;
@@ -1126,4 +1126,163 @@ body {
   font-size: 10px;
   color: #8C897F;
   text-align: center;
+}
+
+.vault-view {
+  height: 100vh;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.vault-view__title {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  margin: 0;
+  text-align: center;
+  color: #E8E4DB;
+}
+
+.vault-view__panel {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+}
+
+.vault-view__panel .inventory-panel {
+  flex: 1;
+}
+
+.vault-view .inventory-slot-grid {
+  grid-template-columns: repeat(10, 1fr);
+}
+
+.nav-panel__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 300;
+}
+
+.nav-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background: #1D1D21;
+  border-left: 1px solid #37373D;
+  z-index: 301;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.nav-panel__heading {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  margin: 0;
+  color: #E8E4DB;
+}
+
+.nav-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav-panel__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8C897F;
+}
+
+.nav-panel__item {
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #E8E4DB;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.nav-panel__item:hover {
+  background: #232327;
+}
+
+.nav-panel__item--active {
+  background: #232327;
+  border-color: #C4761F;
+}
+
+.nav-panel__empty {
+  font-size: 13px;
+  color: #8C897F;
+  margin: 4px 0;
+}
+
+.context-menu__submenu-parent {
+  position: relative;
+}
+
+.context-menu__item--submenu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.context-menu__chevron {
+  color: #8C897F;
+  font-size: 11px;
+}
+
+.context-menu--sub {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 2px;
+}
+
+.nav-panel__add {
+  text-align: center;
+  background: transparent;
+  border: 2px dashed #37373D;
+  border-radius: 6px;
+  color: #8C897F;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-panel__add:hover {
+  border-color: #C4761F;
+  color: #C4761F;
+}
+
+.nav-panel__backdrop {
+  z-index: 300;
+}
+
+.nav-panel {
+  z-index: 301;
+}
+
+/* the character right-click menu must sit above the nav panel */
+.nav-panel ~ .context-menu-backdrop {
+  z-index: 302;
+}
+.nav-panel ~ .context-menu {
+  z-index: 303;
 }

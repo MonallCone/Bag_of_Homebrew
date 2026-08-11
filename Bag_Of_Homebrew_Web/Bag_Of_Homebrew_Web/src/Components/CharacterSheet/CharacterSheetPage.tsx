@@ -40,18 +40,18 @@ const WEAPON_ORDER: SlotType[] = ['WeaponSet1Main', 'WeaponSet1Off', 'WeaponSet2
 
 interface Props {
   characterId: string;
-  characterName: string;
-  initialPortraitUrl: string | null;
-  initialSheetUrl: string | null;
-  initialManualAc: string | null;
+  vaultId: string;
 }
 
-export function CharacterSheetPage({ characterId, characterName, initialPortraitUrl, initialSheetUrl, initialManualAc }: Props) {
+export function CharacterSheetPage({ characterId, vaultId }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [sheetUrl, setSheetUrl] = useState<string | null>(initialSheetUrl);
+  const [characterName, setCharacterName] = useState('');
+  const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
+  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
+  const [manualAc, setManualAc] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -77,9 +77,21 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     }
   }, [characterId]);
 
+  const loadCharacter = useCallback(async () => {
+    const res = await fetch(`${API_BASE}/api/characters/${characterId}`, { credentials: 'include' });
+    if (res.ok) {
+      const c = await res.json();
+      setCharacterName(c.name);
+      setPortraitUrl(c.portraitUrl);
+      setSheetUrl(c.pdfSheetUrl);
+      setManualAc(c.manualAc ?? '');
+    }
+  }, [characterId]);
+
   useEffect(() => {
     loadItems();
     loadSlots();
+    loadCharacter();
   }, [loadItems, loadSlots]);
 
   const createItem = async (payload: CreateItemPayload) => {
@@ -140,7 +152,6 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
   const equippedIds = new Set(slots.filter((s) => s.item).map((s) => s.item!.id));
   const unequippedItems = items.filter((i) => !equippedIds.has(i.id));
 
-  const [portraitUrl, setPortraitUrl] = useState<string | null>(initialPortraitUrl);
 
   const handlePortraitChange = async (url: string) => {
     setPortraitUrl(url);
@@ -208,8 +219,6 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     if (res.ok) await Promise.all([loadItems(), loadSlots()]);
   };
 
-  const [manualAc, setManualAc] = useState(initialManualAc ?? '');
-
   const handleAcChange = async (value: string) => {
     setManualAc(value);
     await fetch(`${API_BASE}/api/characters/${characterId}/ac`, {
@@ -220,10 +229,22 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     });
   };
 
+  const returnToVault = async (itemId: string) => {
+    const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/return-to-vault`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vaultId }),
+    });
+    if (res.ok) {
+      if (selectedItem?.id === itemId) setSelectedItem(null);
+      await Promise.all([loadItems(), loadSlots()]);
+    }
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
-      <BurgerMenu />
       <PdfDropzone sheetUrl={sheetUrl} onSheetChange={handleSheetChange} />
 
       <div className="character-sheet-page__center">
@@ -248,7 +269,7 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
       </div>
       </div>
 
-      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem} onAdjustQuantity={adjustQuantity}/>
+      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem} onAdjustQuantity={adjustQuantity} onReturnToVault={returnToVault}/>
     </div>
 
     <DragOverlay>
