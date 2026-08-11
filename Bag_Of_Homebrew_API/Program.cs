@@ -105,7 +105,8 @@ app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
         CharacterId = current.Id,
         CharacterName = current.Name,
         current.PortraitUrl,
-        current.PdfSheetUrl
+        current.PdfSheetUrl,
+        current.ManualAc,
     });
 });
 
@@ -286,9 +287,21 @@ app.MapPost("/api/characters/{characterId:guid}/unequip", async (
     if (!Enum.TryParse<SlotType>(request.SlotType, out var slotType))
         return Results.BadRequest("Invalid slot type.");
 
-    var slot = await db.EquipmentSlots
-        .FirstAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
-    slot.ItemId = null;
+    var slot = await db.EquipmentSlots.FirstAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
+    var itemId = slot.ItemId;
+
+    // Clear this slot AND any other slot holding the same item (two-handed pairing)
+    if (itemId is not null)
+    {
+        var sharing = await db.EquipmentSlots
+            .Where(s => s.CharacterId == characterId && s.ItemId == itemId)
+            .ToListAsync();
+        foreach (var s in sharing) s.ItemId = null;
+    }
+    else
+    {
+        slot.ItemId = null;
+    }
 
     await db.SaveChangesAsync();
     return Results.Ok();
@@ -439,6 +452,50 @@ app.MapPut("/api/characters/{characterId:guid}/sheet", async (
     return Results.Ok();
 });
 
+app.MapPatch("/api/characters/{characterId:guid}/items/{itemId:guid}/properties", async (
+    Guid characterId, Guid itemId, UpdatePropertiesRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var ownsCharacter = await db.Characters.AnyAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (!ownsCharacter) return Results.NotFound();
+
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.CharacterId == characterId);
+    if (item is null) return Results.NotFound();
+
+    // Merge incoming keys into existing properties (don't clobber unrelated ones)
+    var existing = new Dictionary<string, object?>();
+    try
+    {
+        var parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(item.PropertiesJson);
+        if (parsed is not null) existing = parsed;
+    }
+    catch { }
+
+    foreach (var kvp in request.Properties)
+        existing[kvp.Key] = kvp.Value;
+
+    item.PropertiesJson = System.Text.Json.JsonSerializer.Serialize(existing);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapPut("/api/characters/{characterId:guid}/ac", async (
+    Guid characterId, SetAcRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    character.ManualAc = request.ManualAc;
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.Run();
 
 // ---------- Helpers ----------
@@ -491,6 +548,26 @@ static bool IsValidSlotForItem(Item item, SlotType slot)
     }
 }
 
+static string? GetHandedness(Item item)
+{
+    if (item.Category != ItemCategory.Weapon) return null;
+    try
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(item.PropertiesJson);
+        if (doc.RootElement.TryGetProperty("handedness", out var h))
+            return h.GetString();
+    }
+    catch { }
+    return null;
+}
+
+static SlotType? PairedOffHand(SlotType main) => main switch
+{
+    SlotType.WeaponSet1Main => SlotType.WeaponSet1Off,
+    SlotType.WeaponSet2Main => SlotType.WeaponSet2Off,
+    _ => null
+};
+
 // ---------- Request records ----------
 
 record CreateItemRequest(
@@ -503,8 +580,10 @@ record CreateItemRequest(
     string? ImageUrl,
     int? Quantity);
 
-record EquipRequest(Guid ItemId, string SlotType);
+record EquipRequest(Guid ItemId, string SlotType, bool TwoHanded = false);
 record UnequipRequest(string SlotType);
 record SetPortraitRequest(string? PortraitUrl);
 record AdjustQuantityRequest(int Delta);
 record SetSheetRequest(string? PdfSheetUrl);
+record UpdatePropertiesRequest(Dictionary<string, string> Properties);
+record SetAcRequest(string? ManualAc);

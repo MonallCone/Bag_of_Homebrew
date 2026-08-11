@@ -10,6 +10,8 @@ import { BurgerMenu } from '../Nav/BurgerMenu';
 import type { CreateItemPayload } from '../Inventory/CreateItemModal';
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { validSlotsFor } from '../Inventory/ItemSlotRules';
+import { WeaponSummary } from './WeaponSummary';
+import { AcShield } from './AcShield';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -41,9 +43,10 @@ interface Props {
   characterName: string;
   initialPortraitUrl: string | null;
   initialSheetUrl: string | null;
+  initialManualAc: string | null;
 }
 
-export function CharacterSheetPage({ characterId, characterName, initialPortraitUrl, initialSheetUrl }: Props) {
+export function CharacterSheetPage({ characterId, characterName, initialPortraitUrl, initialSheetUrl, initialManualAc }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
@@ -90,16 +93,14 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     await loadItems();
   };
 
-  const equipItem = async (itemId: string, slotType: SlotType) => {
+  const equipItem = async (itemId: string, slotType: SlotType, twoHanded = false) => {
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/equip`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ itemId, slotType }),
+      body: JSON.stringify({ itemId, slotType, twoHanded }),
     });
-    if (res.ok) {
-      await Promise.all([loadItems(), loadSlots()]);
-    }
+    if (res.ok) await Promise.all([loadItems(), loadSlots()]);
   };
 
   const unequipSlot = async (slotType: SlotType) => {
@@ -236,8 +237,15 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
           />
           <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
         </div>
-        <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
-        <div className="character-sheet-page__bottom-section" />
+        <AcShield slots={slots} manualAc={manualAc} onManualAcChange={handleAcChange} />
+        <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} linkedOffHands={linkedOffHands}/>
+        <div className="character-sheet-page__bottom-section">
+        <WeaponSummary
+          slots={slots}
+          linkedOffHands={linkedOffHands}
+          onUpdateProperties={updateItemProperties}
+        />
+      </div>
       </div>
 
       <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem} onAdjustQuantity={adjustQuantity}/>

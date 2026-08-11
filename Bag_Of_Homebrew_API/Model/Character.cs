@@ -13,5 +13,6 @@
 
         public List<Item> Items { get; set; } = new();
         public List<EquipmentSlot> EquipmentSlots { get; set; } = new();
+        public string? ManualAc {  get; set; }
     }
 }
