@@ -972,3 +972,158 @@ body {
   opacity: 0.35;
   cursor: default;
 }
+
+.slot-socket--linked {
+  opacity: 0.45;
+}
+
+.slot-socket--linked .slot-socket__image {
+  filter: grayscale(0.4);
+}
+
+.modal__radio-group {
+  display: flex;
+  gap: 14px;
+}
+
+.modal__radio {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #E8E4DB;
+  cursor: pointer;
+}
+
+.weapon-summary {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.weapon-summary__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.4fr;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 4px;
+}
+
+.weapon-summary__row--header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8C897F;
+  border-bottom: 1px solid #37373D;
+  padding-bottom: 5px;
+  margin-bottom: 2px;
+}
+
+.weapon-summary__row--equipped {
+  border-bottom: 1px solid #2A2A2E;
+}
+
+.weapon-summary__name {
+  font-size: 13px;
+  color: #E8E4DB;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weapon-summary__input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: #E8E4DB;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  padding: 2px 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.weapon-summary__input:hover {
+  border-bottom-color: #37373D;
+}
+
+.weapon-summary__input:focus {
+  outline: none;
+  border-bottom-color: #C4761F;
+}
+
+.weapon-summary__damage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weapon-summary__die {
+  font-size: 13px;
+  color: #E8E4DB;
+  white-space: nowrap;
+}
+
+.weapon-summary__mod {
+  width: 48px;
+  flex-shrink: 0;
+}
+
+.ac-shield {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ac-shield__badge {
+  position: relative;
+  width: 72px;
+  height: 86px;
+}
+
+.ac-shield__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ac-shield__shape {
+  fill: #232327;
+  stroke: #C4761F;
+  stroke-width: 3;
+}
+
+.ac-shield__input {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 46px;
+  background: transparent;
+  border: none;
+  color: #E8E4DB;
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+}
+
+.ac-shield__input:focus {
+  outline: none;
+}
+
+.ac-shield__input::placeholder {
+  color: #8C897F;
+  font-size: 14px;
+}
+
+.ac-shield__equipped {
+  font-size: 10px;
+  color: #8C897F;
+  text-align: center;
+}

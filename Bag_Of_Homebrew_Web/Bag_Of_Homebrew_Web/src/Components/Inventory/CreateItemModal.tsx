@@ -3,7 +3,7 @@ import type { ItemCategory, ItemRarity } from '../../Types/model';
 import { ImagePicker } from './ImagePicker';
 
 const RARITIES: ItemRarity[] = ['Common', 'Uncommon', 'Rare', 'VeryRare', 'Legendary', 'Artifact'];
-const CATEGORIES: ItemCategory[] = ['Weapon', 'Armour', "Accessory", 'Consumable', 'Misc'];
+const CATEGORIES: ItemCategory[] = ['Weapon', 'Armour', 'Accessory', 'Consumable', 'Misc'];
 const ARMOUR_SLOTS = ['Chest', 'Helm', 'Boots', 'Gloves', 'Shield'];
 
 export interface CreateItemPayload {
@@ -13,7 +13,7 @@ export interface CreateItemPayload {
   isPlotFlagged: boolean;
   homebrewDescription: string;
   propertiesJson: string;
-  imageUrl : string | null;
+  imageUrl: string | null;
   quantity?: number;
 }
 
@@ -28,22 +28,27 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
   const [rarity, setRarity] = useState<ItemRarity>('Common');
   const [isPlotFlagged, setIsPlotFlagged] = useState(false);
   const [homebrewDescription, setHomebrewDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Category-specific fields
   const [damage, setDamage] = useState('');
   const [weaponProperties, setWeaponProperties] = useState('');
+  const [handedness, setHandedness] = useState<'OneHanded' | 'TwoHanded' | 'Versatile'>('OneHanded');
   const [armourSlot, setArmourSlot] = useState('Chest');
   const [acValue, setAcValue] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [effect, setEffect] = useState('');
+  const [damageTwoHanded, setDamageTwoHanded] = useState('');
 
   const buildProperties = (): Record<string, unknown> => {
     switch (category) {
-      case 'Weapon':
-        return { damage, properties: weaponProperties };
+      case 'Weapon': {
+        const props: Record<string, unknown> = { damage, properties: weaponProperties, handedness };
+        if (handedness === 'Versatile') props.damageTwoHanded = damageTwoHanded;
+        return props;
+      }
       case 'Armour': {
         const props: Record<string, unknown> = { slot: armourSlot };
         if (armourSlot === 'Chest' || armourSlot === 'Shield') props.ac = acValue;
@@ -112,18 +117,45 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
           </select>
         </label>
 
-        <ImagePicker value={imageUrl} onChange={setImageUrl}/>
+        <ImagePicker value={imageUrl} onChange={setImageUrl} />
 
         {category === 'Weapon' && (
           <>
             <label className="modal__field">
-              Damage
+              {handedness === 'Versatile' ? 'Damage (one-handed)' : 'Damage'}
               <input value={damage} onChange={(e) => setDamage(e.target.value)} placeholder="e.g. 1d8 slashing" />
             </label>
+
+            {handedness === 'Versatile' && (
+              <label className="modal__field">
+                Damage (two-handed)
+                <input value={damageTwoHanded} onChange={(e) => setDamageTwoHanded(e.target.value)} placeholder="e.g. 1d10 slashing" />
+              </label>
+            )}
             <label className="modal__field">
               Properties
               <input value={weaponProperties} onChange={(e) => setWeaponProperties(e.target.value)} placeholder="e.g. finesse, light" />
             </label>
+            <div className="modal__field">
+              <span>Handedness</span>
+              <div className="modal__radio-group">
+                {([
+                  ['OneHanded', 'One-handed'],
+                  ['TwoHanded', 'Two-handed'],
+                  ['Versatile', 'Versatile'],
+                ] as const).map(([value, label]) => (
+                  <label key={value} className="modal__radio">
+                    <input
+                      type="radio"
+                      name="handedness"
+                      checked={handedness === value}
+                      onChange={() => setHandedness(value)}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </>
         )}
 
@@ -167,9 +199,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
             rows={3}
             placeholder="Freeform abilities, lore, or notes"
           />
-          <span className="modal__hint">
-            Formatting: **bold**, *italic*, ***both***, - bullet
-          </span>
+          <span className="modal__hint">Formatting: **bold**, *italic*, ***both***, - bullet</span>
         </label>
 
         <label className="modal__checkbox">

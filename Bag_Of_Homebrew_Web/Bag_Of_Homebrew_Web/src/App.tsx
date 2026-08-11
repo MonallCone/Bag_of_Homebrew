@@ -10,6 +10,7 @@ interface Session {
   characterName: string;
   portraitUrl: string | null;
   pdfSheetUrl: string | null;
+  manualAc: string | null;
 }
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
       characterName={session.characterName}
       initialPortraitUrl={session.portraitUrl}
       initialSheetUrl={session.pdfSheetUrl}
+      initialManualAc={session.manualAc}
     />
   );
 }
