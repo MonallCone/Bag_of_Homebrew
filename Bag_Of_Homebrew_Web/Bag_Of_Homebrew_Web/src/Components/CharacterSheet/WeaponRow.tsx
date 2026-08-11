@@ -6,14 +6,23 @@ interface Props {
   onUnequip: (slotType: SlotType) => void;
   draggedItem: Item | null;
   onItemClick: (item: Item) => void;
+  linkedOffHands: Set<SlotType>;
 }
 
-export function WeaponRow({ slots, onUnequip, draggedItem, onItemClick}: Props) {
+export function WeaponRow({ slots, onUnequip, draggedItem, onItemClick, linkedOffHands }: Props) {
   const labels = ['Set 1: Main', 'Set 1: Off', 'Set 2: Main', 'Set 2: Off'];
   return (
     <div className="weapon-row">
       {slots.map((slot, i) => (
-        <SlotSocket key={slot.slotType} slot={slot} label={labels[i]} onUnequip={onUnequip} draggedItem={draggedItem} onItemClick={onItemClick}/>
+        <SlotSocket
+          key={slot.slotType}
+          slot={slot}
+          label={labels[i]}
+          onUnequip={onUnequip}
+          draggedItem={draggedItem}
+          onItemClick={onItemClick}
+          isLinkedOffHand={linkedOffHands.has(slot.slotType)}
+        />
       ))}
     </div>
   );

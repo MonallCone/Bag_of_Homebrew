@@ -241,13 +241,34 @@ app.MapPost("/api/characters/{characterId:guid}/equip", async (
     if (!IsValidSlotForItem(item, slotType))
         return Results.BadRequest("That item can't go in that slot.");
 
-    var currentSlot = await db.EquipmentSlots
-        .FirstOrDefaultAsync(s => s.CharacterId == characterId && s.ItemId == item.Id);
-    if (currentSlot is not null) currentSlot.ItemId = null;
+    // Determine if this equip occupies two slots
+    var handedness = GetHandedness(item);
+    var wantsTwoHanded = handedness == "TwoHanded" || (handedness == "Versatile" && request.TwoHanded);
 
-    var targetSlot = await db.EquipmentSlots
-        .FirstAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
+    SlotType? offHand = null;
+    if (wantsTwoHanded)
+    {
+        offHand = PairedOffHand(slotType);
+        if (offHand is null)
+            return Results.BadRequest("Two-handed weapons must be equipped to a main hand.");
+    }
+
+    // Clear this item from any slots it currently occupies (it may already be equipped elsewhere)
+    var existing = await db.EquipmentSlots
+        .Where(s => s.CharacterId == characterId && s.ItemId == item.Id)
+        .ToListAsync();
+    foreach (var s in existing) s.ItemId = null;
+
+    // Fill the main slot
+    var targetSlot = await db.EquipmentSlots.FirstAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
     targetSlot.ItemId = item.Id;
+
+    // Fill the off-hand too, if two-handed
+    if (offHand is not null)
+    {
+        var offSlot = await db.EquipmentSlots.FirstAsync(s => s.CharacterId == characterId && s.SlotType == offHand);
+        offSlot.ItemId = item.Id;
+    }
 
     await db.SaveChangesAsync();
     return Results.Ok();

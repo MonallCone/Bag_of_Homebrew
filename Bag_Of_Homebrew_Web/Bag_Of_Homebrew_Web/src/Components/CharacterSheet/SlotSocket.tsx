@@ -11,9 +11,10 @@ interface Props {
   onUnequip: (slotType: SlotType) => void;
   draggedItem: Item | null;
   onItemClick: (item: Item) => void;
+  isLinkedOffHand?: boolean;
 }
 
-export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick }: Props) {
+export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, isLinkedOffHand }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: slot.slotType });
 
   const isValidTarget = draggedItem !== null && validSlotsFor(draggedItem).includes(slot.slotType);
@@ -22,24 +23,25 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick }:
     'slot-socket',
     slot.item ? 'slot-socket--filled' : '',
     slot.item ? rarityFrameClass(slot.item) : '',
+    isLinkedOffHand ? 'slot-socket--linked' : '',
     isValidTarget ? 'slot-socket--valid-target' : '',
     isValidTarget && isOver ? 'slot-socket--over' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ].filter(Boolean).join(' ');
 
   return (
     <div
       ref={setNodeRef}
       className={classes}
+      onClick={() => { if (slot.item) onItemClick(slot.item); }}
       onContextMenu={(e) => {
         e.preventDefault();
+        // Unequipping either slot of a two-handed weapon clears both (backend handles it)
         if (slot.item) onUnequip(slot.slotType);
       }}
-      title={slot.item ? `${slot.item.name} (right-click to unequip)` : label}
-      onClick={() => {
-        if(slot.item) onItemClick(slot.item);
-      }}
+      title={
+        isLinkedOffHand ? `${slot.item?.name} (two-handed)` :
+        slot.item ? `${slot.item.name} (right-click to unequip)` : label
+      }
     >
       {slot.item ? (
         slot.item.imageUrl ? (
@@ -50,8 +52,7 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick }:
       ) : (
         <span className="slot-socket__label">{label}</span>
       )}
-
-      {slot.item?.isPlotFlagged && <span className="plot-dot" />}
+      {slot.item?.isPlotFlagged && !isLinkedOffHand && <span className="plot-dot" />}
     </div>
   );
 }

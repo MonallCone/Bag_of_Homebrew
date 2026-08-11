@@ -183,6 +183,42 @@ export function CharacterSheetPage({ characterId, characterName, initialPortrait
     });
   };
 
+  // A slot is a "linked off-hand" if its item also occupies the paired main hand
+  const linkedOffHands = new Set<SlotType>();
+  const OFF_TO_MAIN: Partial<Record<SlotType, SlotType>> = {
+    WeaponSet1Off: 'WeaponSet1Main',
+    WeaponSet2Off: 'WeaponSet2Main',
+  };
+  for (const [off, main] of Object.entries(OFF_TO_MAIN) as [SlotType, SlotType][]) {
+    const offSlot = slots.find((s) => s.slotType === off);
+    const mainSlot = slots.find((s) => s.slotType === main);
+    if (offSlot?.item && mainSlot?.item && offSlot.item.id === mainSlot.item.id) {
+      linkedOffHands.add(off);
+    }
+  }
+
+  const updateItemProperties = async (itemId: string, properties: Record<string, string>) => {
+  const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/properties`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ properties }),
+    });
+    if (res.ok) await Promise.all([loadItems(), loadSlots()]);
+  };
+
+  const [manualAc, setManualAc] = useState(initialManualAc ?? '');
+
+  const handleAcChange = async (value: string) => {
+    setManualAc(value);
+    await fetch(`${API_BASE}/api/characters/${characterId}/ac`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manualAc: value }),
+    });
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
