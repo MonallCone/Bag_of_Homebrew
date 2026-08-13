@@ -6,16 +6,32 @@ interface CharacterSummary {
   portraitUrl: string | null;
 }
 
-type View = { kind: 'vault' } | { kind: 'character'; id: string };
+interface CampaignSummary {
+  id: string;
+  name: string;
+  inviteCode: string;
+  vaultId: string;
+  isGm: boolean;
+}
+
+type View =
+  | { kind: 'vault' }
+  | { kind: 'character'; id: string }
+  | { kind: 'campaign'; id: string };
 
 interface Props {
   characters: CharacterSummary[];
+  campaigns: CampaignSummary[];
   vaultId: string;
   currentView: View;
   canAddCharacter: boolean;
+  canCreateCampaign: boolean;
   onSelectVault: () => void;
   onSelectCharacter: (id: string) => void;
+  onSelectCampaign: (id: string) => void;
   onAddCharacter: () => void;
+  onCreateCampaign: () => void;
+  onJoinCampaign: () => void;
   onRenameCharacter: (id: string, currentName: string) => void;
   onDeleteCharacter: (id: string, name: string) => void;
   onClose: () => void;
@@ -23,11 +39,16 @@ interface Props {
 
 export function NavPanel({
   characters,
+  campaigns,
   currentView,
   canAddCharacter,
+  canCreateCampaign,
   onSelectVault,
   onSelectCharacter,
+  onSelectCampaign,
   onAddCharacter,
+  onCreateCampaign,
+  onJoinCampaign,
   onRenameCharacter,
   onDeleteCharacter,
   onClose,
@@ -80,19 +101,48 @@ export function NavPanel({
             </button>
           )}
         </div>
+
+        <div className="nav-panel__section">
+          <span className="nav-panel__label">Campaigns</span>
+
+          {campaigns.length === 0 ? (
+            <p className="nav-panel__empty">No campaigns yet.</p>
+          ) : (
+            campaigns.map((c) => (
+              <button
+                key={c.id}
+                className={`nav-panel__item ${
+                  currentView.kind === 'campaign' && currentView.id === c.id ? 'nav-panel__item--active' : ''
+                }`}
+                onClick={() => onSelectCampaign(c.id)}
+              >
+                {c.isGm ? '👑 ' : '⚔️ '}{c.name}
+              </button>
+            ))
+          )}
+
+          <button className="nav-panel__add" onClick={onJoinCampaign}>
+            + Join by Code
+          </button>
+          {canCreateCampaign && (
+            <button className="nav-panel__add" onClick={onCreateCampaign}>
+              + New Campaign
+            </button>
+          )}
+        </div>
       </div>
 
       {charMenu && (
         <>
           <div
-            className="context-menu-backdrop"
+            className="context-menu-backdrop context-menu-backdrop--nav"
             onClick={() => setCharMenu(null)}
             onContextMenu={(e) => {
               e.preventDefault();
               setCharMenu(null);
             }}
           />
-          <div className="context-menu" style={{ top: charMenu.y, left: charMenu.x }}>
+          <div className="context-menu context-menu--nav" style={{ top: charMenu.y, left: charMenu.x }}>
             <button
               className="context-menu__item"
               onClick={() => {

@@ -12,18 +12,19 @@ type TabValue = 'All' | ItemCategory | 'PlotItems';
 
 interface Props {
   items: Item[];
-  onCreateItem: (payload: CreateItemPayload) => Promise<void>;
-  onDelete: (itemId: string) => void;
-  onAdjustQuantity: (itemId: string, delta: number) => void;
+  onCreateItem?: (payload: CreateItemPayload) => Promise<void>;
+  onDelete?: (itemId: string) => void;                            
+  onAdjustQuantity?: (itemId: string, delta: number) => void;  
   selectedItem: Item | null;
   onSelectItem: (item: Item | null) => void;
   onEquip?: (itemId: string, slotType: SlotType, twoHanded?: boolean) => void;
   onReturnToVault?: (itemId: string) => void;
   sendToCharacterTargets?: { id: string; name: string }[];
   onSendToCharacter?: (itemId: string, characterId: string) => void;
+  inCampaign?: boolean;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -42,9 +43,11 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
       <CategoryTabs active={activeTab} onChange={setActiveTab} />
 
       <div className="inventory-folder-body">
-        <button className="inventory-panel__create-btn" onClick={() => setShowCreateModal(true)}>
-          + Create Item
-        </button>
+        {onCreateItem && (
+          <button className="inventory-panel__create-btn" onClick={() => setShowCreateModal(true)}>
+            + Create Item
+          </button>
+        )}
 
         {selectedItem && (
           <ItemDetailPanel item={selectedItem} onClose={() => onSelectItem(null)} />
@@ -70,7 +73,7 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
         />
       </div>
 
-      {showCreateModal && (
+      {showCreateModal && onCreateItem && (
         <CreateItemModal onClose={() => setShowCreateModal(false)} onCreate={onCreateItem} />
       )}
 
@@ -86,17 +89,14 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           sendToCharacterTargets={sendToCharacterTargets}
           onSendToCharacter={onSendToCharacter}
           onClose={() => setContextMenu(null)}
+          inCampaign={inCampaign}
         />
       )}
 
-      {/* render the confirm modal */}
-      {pendingDelete && (
+      {pendingDelete && onDelete && (
         <ConfirmDeleteModal
           item={pendingDelete}
-          onConfirm={() => {
-            onDelete(pendingDelete.id);
-            setPendingDelete(null);
-          }}
+          onConfirm={() => { onDelete(pendingDelete.id); setPendingDelete(null); }}
           onCancel={() => setPendingDelete(null)}
         />
       )}

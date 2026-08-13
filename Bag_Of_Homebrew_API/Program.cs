@@ -1,4 +1,5 @@
 using Bag_Of_Homebrew_API.Data;
+using Bag_Of_Homebrew_API.Dtos;
 using Bag_Of_Homebrew_API.Model;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -128,23 +129,11 @@ app.MapGet("/api/vaults/{vaultId:guid}/items", async (Guid vaultId, HttpContext 
     if (user is null) return Results.Unauthorized();
     if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
 
-    var items = await db.Items
+    var items = (await db.Items
         .Where(i => i.VaultId == vaultId)
         .OrderByDescending(i => i.CreatedAt)
-        .Select(i => new
-        {
-            i.Id,
-            i.Name,
-            Category = i.Category.ToString(),
-            Rarity = i.Rarity.ToString(),
-            i.IsPlotFlagged,
-            i.HomebrewDescription,
-            i.PropertiesJson,
-            i.ImageUrl,
-            i.Quantity,
-            i.CreatedAt
-        })
-        .ToListAsync();
+        .ToListAsync())
+        .Select(ItemDto.From);
 
     return Results.Ok(items);
 });
@@ -179,20 +168,7 @@ app.MapPost("/api/vaults/{vaultId:guid}/items", async (
 
     db.Items.Add(item);
     await db.SaveChangesAsync();
-
-    return Results.Ok(new
-    {
-        item.Id,
-        item.Name,
-        Category = item.Category.ToString(),
-        Rarity = item.Rarity.ToString(),
-        item.IsPlotFlagged,
-        item.HomebrewDescription,
-        item.PropertiesJson,
-        item.ImageUrl,
-        item.Quantity,
-        item.CreatedAt
-    });
+    return Results.Ok(ItemDto.From(item));
 });
 
 // DELETE vault item
@@ -300,22 +276,9 @@ app.MapGet("/api/characters/{characterId:guid}/items", async (Guid characterId, 
     var items = await db.Items
         .Where(i => i.CharacterId == characterId)
         .OrderByDescending(i => i.CreatedAt)
-        .Select(i => new
-        {
-            i.Id,
-            i.Name,
-            Category = i.Category.ToString(),
-            Rarity = i.Rarity.ToString(),
-            i.IsPlotFlagged,
-            i.HomebrewDescription,
-            i.PropertiesJson,
-            i.ImageUrl,
-            i.CreatedAt,
-            i.Quantity
-        })
-        .ToListAsync();
+        .ToListAsync();                       // materialize entities first
 
-    return Results.Ok(items);
+    return Results.Ok(items.Select(ItemDto.From));   // map in memory
 });
 
 app.MapPost("/api/characters/{characterId:guid}/items", async (
@@ -352,20 +315,7 @@ app.MapPost("/api/characters/{characterId:guid}/items", async (
 
     db.Items.Add(item);
     await db.SaveChangesAsync();
-
-    return Results.Ok(new
-    {
-        item.Id,
-        item.Name,
-        Category = item.Category.ToString(),
-        Rarity = item.Rarity.ToString(),
-        item.IsPlotFlagged,
-        item.HomebrewDescription,
-        item.PropertiesJson,
-        item.CreatedAt,
-        item.ImageUrl,
-        item.Quantity
-    });
+    return Results.Ok(ItemDto.From(item));
 });
 
 app.MapGet("/api/characters/{characterId:guid}/slots", async (Guid characterId, HttpContext ctx, AppDbContext db) =>
@@ -801,9 +751,362 @@ app.MapPut("/api/characters/{characterId:guid}/name", async (
     return Results.Ok(new { character.Id, character.Name });
 });
 
+app.MapPost("/api/campaigns", async (CreateCampaignRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    // Only paid users can host campaigns
+    if (!user.IsPaid)
+        return Results.BadRequest("Hosting a campaign requires a paid account.");
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest("Campaign name is required.");
+
+    // The campaign's own vault (separate from the GM's personal vault)
+    var vault = new Vault { Name = $"{request.Name.Trim()} Vault" };
+    db.Vaults.Add(vault);
+
+    // Generate a unique invite code (retry on the rare collision)
+    string code;
+    do { code = GenerateInviteCode(); }
+    while (await db.Campaigns.AnyAsync(c => c.InviteCode == code));
+
+    var campaign = new Campaign
+    {
+        GmUserId = user.Id,
+        Name = request.Name.Trim(),
+        InviteCode = code,
+        VaultId = vault.Id
+    };
+    db.Campaigns.Add(campaign);
+
+    // Link the vault back to the campaign
+    vault.CampaignId = campaign.Id;
+
+    // The GM's own membership (no character — GM plays via the vault)
+    var membership = new CampaignMembership
+    {
+        CampaignId = campaign.Id,
+        UserId = user.Id,
+        CharacterId = null,
+        Role = CampaignRole.Gm
+    };
+    db.CampaignMemberships.Add(membership);
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        campaign.Id,
+        campaign.Name,
+        campaign.InviteCode,
+        campaign.VaultId
+    });
+});
+
+app.MapGet("/api/campaigns", async (HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var campaigns = await db.CampaignMemberships
+        .Where(m => m.UserId == user.Id)
+        .Include(m => m.Campaign)
+        .Select(m => new
+        {
+            m.Campaign.Id,
+            m.Campaign.Name,
+            m.Campaign.InviteCode,
+            m.Campaign.VaultId,
+            Role = m.Role.ToString(),
+            IsGm = m.Role == CampaignRole.Gm
+        })
+        .ToListAsync();
+
+    return Results.Ok(campaigns);
+});
+
+app.MapPost("/api/campaigns/join", async (JoinCampaignRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(request.InviteCode))
+        return Results.BadRequest("Invite code is required.");
+
+    var code = request.InviteCode.Trim().ToUpperInvariant();
+    var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.InviteCode == code);
+    if (campaign is null)
+        return Results.NotFound("No campaign found with that code.");
+
+    // Already a member?
+    var existing = await db.CampaignMemberships
+        .FirstOrDefaultAsync(m => m.CampaignId == campaign.Id && m.UserId == user.Id);
+    if (existing is not null)
+        return Results.BadRequest("You're already in this campaign.");
+
+    // Verify the character they're bringing belongs to them
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == request.CharacterId && c.UserId == user.Id);
+    if (character is null)
+        return Results.NotFound("Character not found.");
+
+    var membership = new CampaignMembership
+    {
+        CampaignId = campaign.Id,
+        UserId = user.Id,
+        CharacterId = character.Id,
+        Role = CampaignRole.Player
+    };
+    db.CampaignMemberships.Add(membership);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        campaign.Id,
+        campaign.Name,
+        campaign.VaultId
+    });
+});
+
+app.MapPost("/api/campaigns/{campaignId:guid}/leave", async (Guid campaignId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var membership = await db.CampaignMemberships
+        .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == user.Id);
+    if (membership is null) return Results.NotFound();
+
+    // A GM can't "leave" their own campaign — they'd delete it instead (later feature)
+    if (membership.Role == CampaignRole.Gm)
+        return Results.BadRequest("The GM can't leave; delete the campaign instead.");
+
+    db.CampaignMemberships.Remove(membership);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapGet("/api/campaigns/{campaignId:guid}/members", async (Guid campaignId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    // Caller must be a member to see the roster
+    var isMember = await db.CampaignMemberships
+        .AnyAsync(m => m.CampaignId == campaignId && m.UserId == user.Id);
+    if (!isMember) return Results.NotFound();
+
+    var members = await db.CampaignMemberships
+        .Where(m => m.CampaignId == campaignId)
+        .Include(m => m.User)
+        .Include(m => m.Character)
+        .OrderBy(m => m.Role)   // GM first (enum 0), then players
+        .Select(m => new
+        {
+            m.UserId,
+            UserName = m.User.DisplayName,
+            m.CharacterId,
+            CharacterName = m.Character != null ? m.Character.Name : null,
+            PortraitUrl = m.Character != null ? m.Character.PortraitUrl : null,
+            Role = m.Role.ToString(),
+            IsGm = m.Role == CampaignRole.Gm
+        })
+        .ToListAsync();
+
+    return Results.Ok(members);
+});
+
+app.MapGet("/api/campaigns/{campaignId:guid}/vault/items", async (Guid campaignId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound();
+    var campaign = await db.Campaigns.FirstAsync(c => c.Id == campaignId);
+
+    var items = (await db.Items
+        .Where(i => i.VaultId == campaign.VaultId)
+        .OrderByDescending(i => i.CreatedAt)
+        .ToListAsync())
+        .Select(ItemDto.From);
+
+    return Results.Ok(new { items, isGm = membership.Role == CampaignRole.Gm, vaultId = campaign.VaultId });
+});
+
+app.MapPost("/api/campaigns/{campaignId:guid}/vault/items", async (
+    Guid campaignId, CreateItemRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound();
+    if (membership.Role != CampaignRole.Gm)
+        return Results.Forbid();   // only the GM edits the campaign vault
+
+    var campaign = await db.Campaigns.FirstAsync(c => c.Id == campaignId);
+
+    if (string.IsNullOrWhiteSpace(request.Name)) return Results.BadRequest("Name required.");
+    if (!Enum.TryParse<ItemCategory>(request.Category, out var category)) return Results.BadRequest("Bad category.");
+    if (!Enum.TryParse<ItemRarity>(request.Rarity, out var rarity)) return Results.BadRequest("Bad rarity.");
+
+    var item = new Item
+    {
+        VaultId = campaign.VaultId,
+        Name = request.Name.Trim(),
+        Category = category,
+        Rarity = rarity,
+        IsPlotFlagged = request.IsPlotFlagged,
+        HomebrewDescription = request.HomebrewDescription,
+        PropertiesJson = request.PropertiesJson ?? "{}",
+        ImageUrl = request.ImageUrl,
+        Quantity = category == ItemCategory.Consumable ? (request.Quantity ?? 1) : null
+    };
+    db.Items.Add(item);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { item.Id });   // frontend re-fetches
+});
+
+app.MapDelete("/api/campaigns/{campaignId:guid}/vault/items/{itemId:guid}", async (
+    Guid campaignId, Guid itemId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound();
+    if (membership.Role != CampaignRole.Gm) return Results.Forbid();
+
+    var campaign = await db.Campaigns.FirstAsync(c => c.Id == campaignId);
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == campaign.VaultId);
+    if (item is null) return Results.NotFound();
+
+    db.Items.Remove(item);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapGet("/api/campaigns/{campaignId:guid}/members/{memberUserId:guid}/character", async (
+    Guid campaignId, Guid memberUserId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    // Caller must be in the campaign
+    var callerMembership = await GetMembership(campaignId, user, db);
+    if (callerMembership is null) return Results.NotFound();
+
+    // The target member must be in the campaign and have a character
+    var targetMembership = await db.CampaignMemberships
+        .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == memberUserId);
+    if (targetMembership?.CharacterId is null) return Results.NotFound();
+
+    var characterId = targetMembership.CharacterId.Value;
+    var character = await db.Characters.FirstAsync(c => c.Id == characterId);
+
+    var items = await db.Items
+        .Where(i => i.CharacterId == characterId)
+        .OrderByDescending(i => i.CreatedAt)
+        .Select(i => new {
+            i.Id,
+            i.Name,
+            Category = i.Category.ToString(),
+            Rarity = i.Rarity.ToString(),
+            i.IsPlotFlagged,
+            i.HomebrewDescription,
+            i.PropertiesJson,
+            i.ImageUrl,
+            i.Quantity,
+            i.CreatedAt
+        })
+        .ToListAsync();
+
+    var slots = await db.EquipmentSlots
+        .Where(s => s.CharacterId == characterId)
+        .Include(s => s.Item)
+        .Select(s => new {
+            SlotType = s.SlotType.ToString(),
+            Item = s.Item == null ? null : new
+            {
+                s.Item.Id,
+                s.Item.Name,
+                Category = s.Item.Category.ToString(),
+                Rarity = s.Item.Rarity.ToString(),
+                s.Item.IsPlotFlagged,
+                s.Item.HomebrewDescription,
+                s.Item.PropertiesJson,
+                s.Item.ImageUrl,
+                s.Item.Quantity,
+                s.Item.CreatedAt
+            }
+        })
+        .ToListAsync();
+
+    // Is this the caller's own character? (determines editability on the frontend)
+    var isOwn = targetMembership.UserId == user.Id;
+
+    return Results.Ok(new
+    {
+        character.Id,
+        character.Name,
+        character.PortraitUrl,
+        character.PdfSheetUrl,
+        character.ManualAc,
+        items,
+        slots,
+        isOwn
+    });
+});
+
+app.MapPost("/api/campaigns/{campaignId:guid}/return-to-vault", async (
+    Guid campaignId, ReturnToCampaignVaultRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    // Caller must be a member of the campaign
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound("Not a member of this campaign.");
+
+    var campaign = await db.Campaigns.FirstAsync(c => c.Id == campaignId);
+
+    // The item must be on a character the caller owns
+    var item = await db.Items
+        .Include(i => i.Character)
+        .FirstOrDefaultAsync(i => i.Id == request.ItemId);
+    if (item is null) return Results.NotFound("Item not found.");
+    if (item.Character is null || item.Character.UserId != user.Id)
+        return Results.Forbid();   // can't return someone else's item
+
+    var characterId = item.CharacterId!.Value;
+
+    // Clear it from any equipment slot(s) it occupies
+    var slots = await db.EquipmentSlots
+        .Where(s => s.CharacterId == characterId && s.ItemId == item.Id)
+        .ToListAsync();
+    foreach (var s in slots) s.ItemId = null;
+
+    // Move ownership: character → campaign vault
+    item.CharacterId = null;
+    item.VaultId = campaign.VaultId;
+
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.Run();
 
 // ---------- Helpers ----------
+
+static string GenerateInviteCode()
+{
+    // Avoids ambiguous chars (0/O, 1/I/L) for readability
+    const string chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    var rng = Random.Shared;
+    return new string(Enumerable.Range(0, 6).Select(_ => chars[rng.Next(chars.Length)]).ToArray());
+}
 
 static async Task<User?> GetCurrentUser(HttpContext ctx, AppDbContext db)
 {
@@ -876,6 +1179,10 @@ static SlotType? PairedOffHand(SlotType main) => main switch
 static async Task<bool> OwnsVault(Guid vaultId, User user, AppDbContext db)
     => await db.Vaults.AnyAsync(v => v.Id == vaultId && v.UserId == user.Id);
 
+static async Task<CampaignMembership?> GetMembership(Guid campaignId, User user, AppDbContext db)
+    => await db.CampaignMemberships
+        .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == user.Id);
+
 // ---------- Request records ----------
 
 record CreateItemRequest(
@@ -899,3 +1206,6 @@ record ReturnToVaultRequest(Guid VaultId);
 record SendToCharacterRequest(Guid CharacterId);
 record CreateCharacterRequest(string Name);
 record RenameCharacterRequest(string Name);
+record CreateCampaignRequest(string Name);
+record JoinCampaignRequest(string InviteCode, Guid CharacterId);
+record ReturnToCampaignVaultRequest(Guid ItemId);

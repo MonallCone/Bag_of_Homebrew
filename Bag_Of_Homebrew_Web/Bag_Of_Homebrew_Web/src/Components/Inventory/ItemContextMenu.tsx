@@ -9,13 +9,14 @@ interface Props {
   onEquip?: (itemId: string, slotType: SlotType, twoHanded?: boolean) => void;
   onReturnToVault?: (itemId: string) => void;
   onDeleteRequest: (item: Item) => void;
-  onAdjustQuantity: (itemId: string, delta: number) => void;
+  onAdjustQuantity?: (itemId: string, delta: number) => void; 
   onClose: () => void;
   sendToCharacterTargets?: { id: string; name: string }[];
   onSendToCharacter?: (itemId: string, characterId: string) => void;
+  inCampaign?: boolean;
 }
 
-export function ItemContextMenu({ item, x, y, onEquip, onDeleteRequest, onAdjustQuantity, onClose, onReturnToVault, sendToCharacterTargets, onSendToCharacter, }: Props) {
+export function ItemContextMenu({ item, x, y, onEquip, onDeleteRequest, onAdjustQuantity, onClose, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false}: Props) {
   const slots = validSlotsFor(item);
   const handedness = item.properties['handedness'] as string | undefined;
   const isVersatile = item.category === 'Weapon' && handedness === 'Versatile';
@@ -113,24 +114,21 @@ export function ItemContextMenu({ item, x, y, onEquip, onDeleteRequest, onAdjust
         )}
 
         {/* Consumable use — both modes */}
-        {item.category === 'Consumable' && (
-          <button
-            className="context-menu__item"
-            onClick={() => { onAdjustQuantity(item.id, -1); onClose(); }}
-            disabled={(item.quantity ?? 0) <= 0}
-          >
-            Use one ({item.quantity ?? 0} left)
-          </button>
-        )}
+          {item.category === 'Consumable' && onAdjustQuantity && (
+            <button
+              className="context-menu__item"
+              onClick={() => { onAdjustQuantity(item.id, -1); onClose(); }}
+              disabled={(item.quantity ?? 0) <= 0}
+            >
+              Use one ({item.quantity ?? 0} left)
+            </button>
+          )}
 
         {/* Return to Vault — character mode only */}
         {onReturnToVault && (
-          <><div className="context-menu__divider" /><button
-            className="context-menu__item"
-            onClick={() => { onReturnToVault(item.id); onClose(); } }
-          >
-            Return to Vault
-          </button></>
+          <button className="context-menu__item" onClick={() => { onReturnToVault(item.id); onClose(); }}>
+            {inCampaign ? 'Return to Campaign Vault' : 'Return to Vault'}
+          </button>
         )}
 
         {/* Delete — both modes */}

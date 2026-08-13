@@ -6,7 +6,6 @@ import { WeaponRow } from './WeaponRow';
 import { CharacterPortrait } from './CharacterPortrait';
 import { InventoryPanel } from '../Inventory/InventoryPanel';
 import { PdfDropzone } from '../PdfDropZone/PdfDropzone';
-import { BurgerMenu } from '../Nav/BurgerMenu';
 import type { CreateItemPayload } from '../Inventory/CreateItemModal';
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { validSlotsFor } from '../Inventory/ItemSlotRules';
@@ -38,12 +37,20 @@ const ARMOUR_ORDER: SlotType[] = ['Head', 'Chest', 'Gloves', 'Boots'];
 const ACCESSORY_ORDER: SlotType[] = ['Accessory1', 'Accessory2', 'Accessory3', 'Accessory4', 'Accessory5', 'Accessory6'];
 const WEAPON_ORDER: SlotType[] = ['WeaponSet1Main', 'WeaponSet1Off', 'WeaponSet2Main', 'WeaponSet2Off'];
 
-interface Props {
-  characterId: string;
-  vaultId: string;
+interface CampaignContext {
+  campaignId: string;
+  campaignVaultId: string;
+  memberUserId?: string; 
 }
 
-export function CharacterSheetPage({ characterId, vaultId }: Props) {
+interface Props {
+  characterId: string;
+  vaultId: string;          
+  campaign?: CampaignContext;    
+  readOnly?: boolean;          
+}
+
+export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = false }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
@@ -95,6 +102,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   }, [loadItems, loadSlots]);
 
   const createItem = async (payload: CreateItemPayload) => {
+    if (readOnly) return;
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/items`, {
       method: 'POST',
       credentials: 'include',
@@ -106,6 +114,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   };
 
   const equipItem = async (itemId: string, slotType: SlotType, twoHanded = false) => {
+    if (readOnly) return;
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/equip`, {
       method: 'POST',
       credentials: 'include',
@@ -116,6 +125,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   };
 
   const unequipSlot = async (slotType: SlotType) => {
+    if (readOnly) return;
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/unequip`, {
       method: 'POST',
       credentials: 'include',
@@ -133,6 +143,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (readOnly) return;
     const {active, over} = event;
     setDraggedItem(null);
     if(!over) return;
@@ -154,6 +165,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
 
 
   const handlePortraitChange = async (url: string) => {
+    if (readOnly) return;
     setPortraitUrl(url);
     await fetch(`${API_BASE}/api/characters/${characterId}/portrait`, {
       method: 'PUT',
@@ -164,6 +176,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   };
 
   const deleteItem = async (itemId: string) => {
+    if (readOnly) return;
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}`, {
       method: 'DELETE',
       credentials: 'include',
@@ -176,6 +189,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   };
 
   const adjustQuantity = async (itemId: string, delta: number) => {
+    if (readOnly) return;
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/quantity`, {
       method: 'PATCH',
       credentials: 'include',
@@ -186,6 +200,7 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   };
 
   const handleSheetChange = async (url: string) => {
+    if (readOnly) return;
     setSheetUrl(url || null);
     await fetch(`${API_BASE}/api/characters/${characterId}/sheet`, {
       method: 'PUT',
@@ -210,16 +225,18 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
   }
 
   const updateItemProperties = async (itemId: string, properties: Record<string, string>) => {
-  const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/properties`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ properties }),
-    });
-    if (res.ok) await Promise.all([loadItems(), loadSlots()]);
+    if (readOnly) return;
+    const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/properties`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ properties }),
+      });
+      if (res.ok) await Promise.all([loadItems(), loadSlots()]);
   };
 
   const handleAcChange = async (value: string) => {
+    if (readOnly) return;
     setManualAc(value);
     await fetch(`${API_BASE}/api/characters/${characterId}/ac`, {
       method: 'PUT',
@@ -229,18 +246,52 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
     });
   };
 
-  const returnToVault = async (itemId: string) => {
-    const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}/return-to-vault`, {
+const returnToVault = async (itemId: string) => {
+    if (readOnly) return;
+
+    const url = campaign
+      ? `${API_BASE}/api/campaigns/${campaign.campaignId}/return-to-vault`
+      : `${API_BASE}/api/characters/${characterId}/items/${itemId}/return-to-vault`;
+
+    const body = campaign
+      ? JSON.stringify({ itemId })
+      : JSON.stringify({ vaultId });
+
+    const res = await fetch(url, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vaultId }),
+      body,
     });
     if (res.ok) {
       if (selectedItem?.id === itemId) setSelectedItem(null);
       await Promise.all([loadItems(), loadSlots()]);
     }
   };
+
+  const loadEverything = useCallback(async () => {
+  if (readOnly && campaign?.memberUserId) {
+    // Load another player's character via the campaign read endpoint (single call returns all)
+    const res = await fetch(
+      `${API_BASE}/api/campaigns/${campaign.campaignId}/members/${campaign.memberUserId}/character`,
+      { credentials: 'include' }
+    );
+    if (res.ok) {
+      const d = await res.json();
+      setCharacterName(d.name);
+      setPortraitUrl(d.portraitUrl);
+      setSheetUrl(d.pdfSheetUrl);
+      setManualAc(d.manualAc ?? '');
+      setItems((d.items as ApiItem[]).map(toItem));
+      setSlots((d.slots as ApiSlot[]).map((s) => ({ slotType: s.slotType, item: s.item ? toItem(s.item) : null })));
+    }
+  } else {
+    // Own character — the existing separate loaders
+    await Promise.all([loadCharacter(), loadItems(), loadSlots()]);
+  }
+}, [readOnly, campaign, loadCharacter, loadItems, loadSlots]);
+
+useEffect(() => { loadEverything(); }, [loadEverything]);
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -269,7 +320,17 @@ export function CharacterSheetPage({ characterId, vaultId }: Props) {
       </div>
       </div>
 
-      <InventoryPanel items={unequippedItems} onCreateItem={createItem} onEquip={equipItem} selectedItem={selectedItem} onSelectItem={setSelectedItem} onDelete={deleteItem} onAdjustQuantity={adjustQuantity} onReturnToVault={returnToVault}/>
+      <InventoryPanel
+        items={unequippedItems}
+        selectedItem={selectedItem}
+        onSelectItem={setSelectedItem}
+        onCreateItem={readOnly ? undefined : createItem}
+        onDelete={readOnly ? undefined : deleteItem}
+        onAdjustQuantity={readOnly ? undefined : adjustQuantity}
+        onEquip={readOnly ? undefined : equipItem}
+        onReturnToVault={readOnly ? undefined : returnToVault}
+        inCampaign={!!campaign}
+      />
     </div>
 
     <DragOverlay>

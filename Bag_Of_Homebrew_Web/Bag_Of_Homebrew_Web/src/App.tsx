@@ -7,12 +7,16 @@ import { NavPanel } from './Components/Nav/NavPanel';
 import { NewCharacterModal } from './Components/Nav/NewCharacterModal';
 import { RenameCharacterModal } from './Components/Nav/RenameCharacterModal';
 import { DeleteCharacterModal } from './Components/Nav/DeleteCharacterModal';
+import { CampaignView } from './Components/Campaign/CampaignView';
+import { NewCampaignModal } from './Components/Campaign/NewCampaignModal';
+import { JoinCampaignModal } from './Components/Campaign/JoinCampaignModal';
 
 const API_BASE = 'https://localhost:7238';
 
 interface Session {
   displayName: string;
   vaultId: string;
+  userId: string;
 }
 
 interface CharacterSummary {
@@ -21,10 +25,19 @@ interface CharacterSummary {
   portraitUrl: string | null;
 }
 
+interface CampaignSummary {
+  id: string;
+  name: string;
+  inviteCode: string;
+  vaultId: string;
+  isGm: boolean;
+}
+
 // What's currently on screen
 type View =
   | { kind: 'vault' }
-  | { kind: 'character'; id: string };
+  | { kind: 'character'; id: string }
+  | { kind: 'campaign'; id: string };
 
 function App() {
   const [session, setSession] = useState<Session | null | 'loading'>('loading');
@@ -35,13 +48,16 @@ function App() {
   const [isPaid, setIsPaid] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
+  const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+  const [showJoinCampaign, setShowJoinCampaign] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!data) { setSession(null); return; }
-        setSession({ displayName: data.displayName, vaultId: data.vaultId });
+        setSession({ displayName: data.displayName, vaultId: data.vaultId, userId: data.id });
         setIsPaid(data.isPaid ?? false);        // ← add this line
         if (data.characterId) setView({ kind: 'character', id: data.characterId });
       })
@@ -54,8 +70,14 @@ function App() {
       .then(setCharacters);
   };
 
+  const loadCampaigns = () => {
+    fetch(`${API_BASE}/api/campaigns`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setCampaigns);
+  };
+
   useEffect(() => {
-    if (session && session !== 'loading') loadCharacters();
+    if (session && session !== 'loading') { loadCharacters(); loadCampaigns(); }
   }, [session]);
 
   if (session === 'loading') return <p>Checking session...</p>;
@@ -101,23 +123,52 @@ function App() {
     loadCharacters();
   };
 
+  const createCampaign = async (name: string) => {
+    const res = await fetch(`${API_BASE}/api/campaigns`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) { const m = await res.text().catch(() => ''); throw new Error(m || 'Create failed'); }
+    const created = await res.json();
+    loadCampaigns();
+    setView({ kind: 'campaign', id: created.id });
+  };
+
+  const joinCampaign = async (inviteCode: string, characterId: string) => {
+    const res = await fetch(`${API_BASE}/api/campaigns/join`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteCode, characterId }),
+    });
+    if (!res.ok) { const m = await res.text().catch(() => ''); throw new Error(m || 'Join failed'); }
+    const joined = await res.json();
+    loadCampaigns();
+    setView({ kind: 'campaign', id: joined.id });
+  };
+
   return (
     <>
       <BurgerMenu onClick={() => setMenuOpen(true)} />
 
       {menuOpen && (
-        <NavPanel
-          characters={characters}
-          vaultId={session.vaultId}
-          currentView={view}
-          canAddCharacter={canAddCharacter}
-          onSelectVault={() => { setView({ kind: 'vault' }); setMenuOpen(false); }}
-          onSelectCharacter={(id) => { setView({ kind: 'character', id }); setMenuOpen(false); }}
-          onAddCharacter={() => { setMenuOpen(false); setShowNewCharacter(true); }}
-          onClose={() => setMenuOpen(false)}
-          onRenameCharacter={(id, name) => { setMenuOpen(false); setRenameTarget({ id, name }); }}
-          onDeleteCharacter={(id, name) => { setMenuOpen(false); setDeleteTarget({ id, name }); }}
-        />
+          <NavPanel
+            characters={characters}
+            campaigns={campaigns}
+            vaultId={session.vaultId}
+            currentView={view}
+            canAddCharacter={canAddCharacter}
+            canCreateCampaign={isPaid}
+            onSelectVault={() => { setView({ kind: 'vault' }); setMenuOpen(false); }}
+            onSelectCharacter={(id) => { setView({ kind: 'character', id }); setMenuOpen(false); }}
+            onSelectCampaign={(id) => { setView({ kind: 'campaign', id }); setMenuOpen(false); }}
+            onAddCharacter={() => { setMenuOpen(false); setShowNewCharacter(true); }}
+            onCreateCampaign={() => { setMenuOpen(false); setShowCreateCampaign(true); }}
+            onJoinCampaign={() => { setMenuOpen(false); setShowJoinCampaign(true); }}
+            onRenameCharacter={(id, name) => { setMenuOpen(false); setRenameTarget({ id, name }); }}
+            onDeleteCharacter={(id, name) => { setMenuOpen(false); setDeleteTarget({ id, name }); }}
+            onClose={() => setMenuOpen(false)}
+          />
       )}
 
       {showNewCharacter && (
@@ -127,14 +178,21 @@ function App() {
         />
       )}
 
-      {view.kind === 'vault' ? (
-        <VaultView vaultId={session.vaultId} vaultName="Dragon's Vault" characters={characters}/>
-      ) : (
-        <CharacterSheetPage
-          key={view.id}           /* remount on character switch = fresh data load */
-          characterId={view.id}
-          vaultId={session.vaultId}
-        />
+      {view.kind === 'vault' && (
+        <VaultView vaultId={session.vaultId} vaultName="Dragon's Vault" characters={characters} />
+      )}
+      {view.kind === 'character' && (
+        <CharacterSheetPage key={view.id} characterId={view.id} vaultId={session.vaultId} />
+      )}
+      {view.kind === 'campaign' && (
+        <CampaignView key={view.id} campaignId={view.id} currentUserId={session.userId} />
+      )}
+
+      {showCreateCampaign && (
+        <NewCampaignModal onCreate={createCampaign} onClose={() => setShowCreateCampaign(false)} />
+      )}
+      {showJoinCampaign && (
+        <JoinCampaignModal characters={characters} onJoin={joinCampaign} onClose={() => setShowJoinCampaign(false)} />
       )}
 
       {renameTarget && (

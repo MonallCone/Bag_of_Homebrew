@@ -12,6 +12,8 @@ namespace Bag_Of_Homebrew_API.Data
         public DbSet<Item> Items => Set<Item>();
         public DbSet<EquipmentSlot> EquipmentSlots => Set<EquipmentSlot>();
         public DbSet<Vault> Vaults => Set<Vault>();
+        public DbSet<Campaign> Campaigns => Set<Campaign>();
+        public DbSet<CampaignMembership> CampaignMemberships => Set<CampaignMembership>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -23,9 +25,42 @@ namespace Bag_Of_Homebrew_API.Data
                 .Property(i => i.PropertiesJson)
                 .HasColumnType("jsonb");
 
+            // A user has at most one PERSONAL vault (UserId set). Campaign vaults have UserId null,
+            // so a filtered unique index only constrains personal vaults.
             modelBuilder.Entity<Vault>()
                 .HasIndex(v => v.UserId)
+                .IsUnique()
+                .HasFilter("\"UserId\" IS NOT NULL");
+
+            // Campaign ↔ Vault one-to-one
+            modelBuilder.Entity<Campaign>()
+                .HasOne(c => c.Vault)
+                .WithOne()
+                .HasForeignKey<Campaign>(c => c.VaultId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Unique invite code
+            modelBuilder.Entity<Campaign>()
+                .HasIndex(c => c.InviteCode)
                 .IsUnique();
+
+            // A user can only be in a campaign once
+            modelBuilder.Entity<CampaignMembership>()
+                .HasIndex(m => new { m.CampaignId, m.UserId })
+                .IsUnique();
+
+            // Avoid multiple cascade paths: don't cascade-delete memberships from Character
+            modelBuilder.Entity<CampaignMembership>()
+                .HasOne(m => m.Character)
+                .WithMany()
+                .HasForeignKey(m => m.CharacterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<CampaignMembership>()
+                .HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
