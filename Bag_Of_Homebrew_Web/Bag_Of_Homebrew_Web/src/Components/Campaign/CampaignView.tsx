@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CampaignVaultTab } from './CampaignVaultTab';
 import { CharacterSheetPage } from '../CharacterSheet/CharacterSheetPage';
+import { type ApiItem} from '../../api/item';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -29,10 +30,15 @@ interface Props {
   currentUserId: string;
 }
 
+interface IncomingTransfer { transferId: string; fromUserId: string; item: ApiItem; }
+interface OutgoingTransfer { transferId: string; itemId: string; toUserId: string; }
+
 export function CampaignView({ campaignId, currentUserId }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [campaign, setCampaign] = useState<CampaignInfo | null>(null);
   const [tab, setTab] = useState<Tab>({ kind: 'vault' });
+  const [incoming, setIncoming] = useState<IncomingTransfer[]>([]);
+  const [outgoing, setOutgoing] = useState<OutgoingTransfer[]>([]);
 
   const loadMembers = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}/members`, { credentials: 'include' });
@@ -48,7 +54,16 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
     }
   }, [campaignId]);
 
-  useEffect(() => { loadMembers(); loadCampaign(); }, [loadMembers, loadCampaign]);
+  const loadTransfers = useCallback(async () => {
+    const [inc, out] = await Promise.all([
+      fetch(`${API_BASE}/api/campaigns/${campaignId}/transfers/incoming`, { credentials: 'include' }).then(r => r.ok ? r.json() : []),
+      fetch(`${API_BASE}/api/campaigns/${campaignId}/transfers/outgoing`, { credentials: 'include' }).then(r => r.ok ? r.json() : []),
+    ]);
+    setIncoming(inc);
+    setOutgoing(out);
+  }, [campaignId]);
+
+  useEffect(() => { loadMembers(); loadCampaign(); loadTransfers();}, [loadMembers, loadCampaign, loadTransfers]);
 
   const isGm = campaign?.isGm ?? false;
   const players = members.filter((m) => !m.isGm);
@@ -86,7 +101,7 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
         <div className="campaign-view__body">
             <div className="campaign-view__body">
             {tab.kind === 'vault' ? (
-                <CampaignVaultTab campaignId={campaignId} isGm={isGm} />
+                <CampaignVaultTab campaignId={campaignId} isGm={isGm} players={players.filter((p) => p.characterId)}/>
             ) : (() => {
                 const player = players.find((p) => p.userId === tab.userId);
                 if (!player?.characterId) return <p className="campaign-view__placeholder">No character.</p>;
@@ -94,15 +109,21 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
                 const isYou = tab.userId === currentUserId;
                 return (
                 <CharacterSheetPage
-                    key={player.characterId}
-                    characterId={player.characterId}
-                    vaultId=""                          /* personal vault unused in campaign context */
-                    campaign={{
+                  key={player.characterId}
+                  characterId={player.characterId}
+                  vaultId=""
+                  campaign={{
                     campaignId,
                     campaignVaultId: campaign!.vaultId,
                     memberUserId: isYou ? undefined : tab.userId,
-                    }}
-                    readOnly={!isYou}
+                    giftTargets: players
+                      .filter((p) => p.userId !== currentUserId && p.characterId)  // other players with characters
+                      .map((p) => ({ userId: p.userId, name: p.characterName ?? p.userName })),
+                    incoming,
+                    outgoing,
+                    onTransfersChanged: loadTransfers,
+                  }}
+                  readOnly={!isYou}
                 />
                 );
             })()}

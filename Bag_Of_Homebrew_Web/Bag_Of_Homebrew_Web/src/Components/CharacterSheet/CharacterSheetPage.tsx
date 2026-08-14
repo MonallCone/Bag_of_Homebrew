@@ -11,26 +11,13 @@ import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, Pointe
 import { validSlotsFor } from '../Inventory/ItemSlotRules';
 import { WeaponSummary } from './WeaponSummary';
 import { AcShield } from './AcShield';
+import { type ApiItem, toItem } from '../../api/item';
 
 const API_BASE = 'https://localhost:7238';
-
-interface ApiItem extends Omit<Item, 'properties'> {
-  propertiesJson: string;
-}
 
 interface ApiSlot {
   slotType: SlotType;
   item: ApiItem | null;
-}
-
-function toItem(raw: ApiItem): Item {
-  let properties: Record<string, unknown> = {};
-  try {
-    properties = JSON.parse(raw.propertiesJson);
-  } catch {
-    // leave empty if malformed
-  }
-  return { ...raw, properties };
 }
 
 const ARMOUR_ORDER: SlotType[] = ['Head', 'Chest', 'Gloves', 'Boots'];
@@ -40,7 +27,11 @@ const WEAPON_ORDER: SlotType[] = ['WeaponSet1Main', 'WeaponSet1Off', 'WeaponSet2
 interface CampaignContext {
   campaignId: string;
   campaignVaultId: string;
-  memberUserId?: string; 
+  memberUserId?: string;
+  giftTargets?: { userId: string; name: string }[];
+  incoming?: { transferId: string; fromUserId: string; item: ApiItem }[];
+  outgoing?: { transferId: string; itemId: string; toUserId: string }[];
+  onTransfersChanged?: () => void;
 }
 
 interface Props {
@@ -59,6 +50,8 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [manualAc, setManualAc] = useState('');
+
+  console.log('loader', { readOnly, memberUserId: campaign?.memberUserId, characterId });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -94,12 +87,6 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
       setManualAc(c.manualAc ?? '');
     }
   }, [characterId]);
-
-  useEffect(() => {
-    loadItems();
-    loadSlots();
-    loadCharacter();
-  }, [loadItems, loadSlots]);
 
   const createItem = async (payload: CreateItemPayload) => {
     if (readOnly) return;
@@ -293,6 +280,48 @@ const returnToVault = async (itemId: string) => {
 
 useEffect(() => { loadEverything(); }, [loadEverything]);
 
+  const giftItem = async (itemId: string, toUserId: string) => {
+    if (!campaign) return;
+    const res = await fetch(`${API_BASE}/api/campaigns/${campaign.campaignId}/gift`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId, toUserId }),
+    });
+    if (res.ok) { await loadItems(); campaign.onTransfersChanged?.(); }
+  };
+
+  const acceptTransfer = async (transferId: string) => {
+    if (!campaign) return;
+    const res = await fetch(`${API_BASE}/api/campaigns/${campaign.campaignId}/transfers/${transferId}/accept`, {
+      method: 'POST', credentials: 'include',
+    });
+    if (res.ok) { await loadItems(); campaign.onTransfersChanged?.(); }
+  };
+
+  const rejectTransfer = async (transferId: string) => {
+    if (!campaign) return;
+    const res = await fetch(`${API_BASE}/api/campaigns/${campaign.campaignId}/transfers/${transferId}/reject`, {
+      method: 'POST', credentials: 'include',
+    });
+    if (res.ok) { await loadItems(); campaign.onTransfersChanged?.(); }
+  };
+
+  // Set of item ids the player has offered out (still pending)
+  const outgoingItemIds = new Set((campaign?.outgoing ?? []).map((o) => o.itemId));
+
+  // Incoming gifts become pseudo-items flagged as pending-incoming
+  const incomingItems = (campaign?.incoming ?? []).map((t) => ({
+    ...toItem(t.item),
+    __pendingIncoming: t.transferId,   // marker fields
+  }));
+
+  // Real unequipped items, flagged if outgoing-pending
+  const ownItems = unequippedItems.map((i) =>
+    outgoingItemIds.has(i.id) ? { ...i, __pendingOutgoing: true } : i
+  );
+
+  const displayItems = [...ownItems, ...incomingItems];
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
@@ -321,7 +350,7 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
       </div>
 
       <InventoryPanel
-        items={unequippedItems}
+        items={displayItems}
         selectedItem={selectedItem}
         onSelectItem={setSelectedItem}
         onCreateItem={readOnly ? undefined : createItem}
@@ -330,6 +359,10 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
         onEquip={readOnly ? undefined : equipItem}
         onReturnToVault={readOnly ? undefined : returnToVault}
         inCampaign={!!campaign}
+        onGift={readOnly ? undefined : giftItem}
+        onAcceptTransfer={readOnly ? undefined : acceptTransfer}
+        onRejectTransfer={readOnly ? undefined : rejectTransfer}
+        giftTargets={campaign?.giftTargets}
       />
     </div>
 

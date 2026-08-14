@@ -1384,3 +1384,28 @@ body {
   border-top: 2px solid #C4761F;
   color: #C4761F;
 }
+
+.inventory-slot--pending-in { outline: 2px solid #3FA34D; outline-offset: 2px; }
+.inventory-slot--pending-out { opacity: 0.55; }
+
+.pending-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 11px;
+  z-index: 2;
+}
+.pending-badge--in {
+  background: #3FA34D;
+  color: #17171B;
+}
+.pending-badge--out {
+  background: #8C897F;
+  color: #17171B;
+}

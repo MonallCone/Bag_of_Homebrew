@@ -14,6 +14,7 @@ namespace Bag_Of_Homebrew_API.Data
         public DbSet<Vault> Vaults => Set<Vault>();
         public DbSet<Campaign> Campaigns => Set<Campaign>();
         public DbSet<CampaignMembership> CampaignMemberships => Set<CampaignMembership>();
+        public DbSet<ItemTransfer> ItemTransfers => Set<ItemTransfer>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -61,6 +62,22 @@ namespace Bag_Of_Homebrew_API.Data
                 .WithMany()
                 .HasForeignKey(m => m.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.Item)
+                .WithMany()
+                .HasForeignKey(t => t.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);   // if the item is deleted, cancel its transfers
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.Campaign)
+                .WithMany()
+                .HasForeignKey(t => t.CampaignId)
+                .OnDelete(DeleteBehavior.Cascade);   // if the campaign is deleted, clear its transfers
+
+            // An index for the common query: "pending transfers to me in this campaign"
+            modelBuilder.Entity<ItemTransfer>()
+                .HasIndex(t => new { t.ToUserId, t.CampaignId, t.Status });
         }
     }
 }

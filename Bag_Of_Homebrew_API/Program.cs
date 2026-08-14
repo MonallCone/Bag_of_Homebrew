@@ -48,6 +48,35 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// DEV ONLY — remove before any real deployment
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/api/dev/login-as/{name}", async (string name, HttpContext ctx, AppDbContext db) =>
+    {
+        // Find or create a fake user keyed by a fake "GoogleId"
+        var fakeGoogleId = $"dev-{name}";
+        var user = await db.Users.FirstOrDefaultAsync(u => u.GoogleId == fakeGoogleId);
+        if (user is null)
+        {
+            user = new User { GoogleId = fakeGoogleId, Email = $"{name}@dev.local", DisplayName = name };
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+        }
+
+        // Sign them in with the same cookie scheme Google uses
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, fakeGoogleId),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.DisplayName)
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+        return Results.Redirect("http://localhost:5173");
+    });
+}
+
 // Kicks off the Google login flow. Hit this via a full page navigation (not fetch).
 app.MapGet("/api/auth/login", () => Results.Challenge(
     new AuthenticationProperties { RedirectUri = "http://localhost:5173" },
@@ -1096,6 +1125,189 @@ app.MapPost("/api/campaigns/{campaignId:guid}/return-to-vault", async (
     return Results.Ok();
 });
 
+app.MapPost("/api/campaigns/{campaignId:guid}/gift", async (
+    Guid campaignId, GiftItemRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    // Sender must be a member of the campaign
+    var senderMembership = await GetMembership(campaignId, user, db);
+    if (senderMembership is null) return Results.NotFound("You're not in this campaign.");
+
+    // Recipient must also be a member, and have a character in this campaign
+    var recipientMembership = await db.CampaignMemberships
+        .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == request.ToUserId);
+    if (recipientMembership is null)
+        return Results.BadRequest("Recipient isn't in this campaign.");
+    if (recipientMembership.CharacterId is null)
+        return Results.BadRequest("Recipient has no character to receive items.");
+
+    // Can't gift to yourself
+    if (request.ToUserId == user.Id)
+        return Results.BadRequest("You can't send an item to yourself.");
+
+    // The item must be on a character the sender owns
+    var item = await db.Items
+        .Include(i => i.Character)
+        .FirstOrDefaultAsync(i => i.Id == request.ItemId);
+    if (item is null) return Results.NotFound("Item not found.");
+    if (item.Character is null || item.Character.UserId != user.Id)
+        return Results.Forbid();   // can't gift someone else's item, or a vault item
+
+    // Prevent gifting an item that's already mid-transfer
+    var alreadyPending = await db.ItemTransfers
+        .AnyAsync(t => t.ItemId == item.Id && t.Status == TransferStatus.Pending);
+    if (alreadyPending)
+        return Results.BadRequest("This item is already being gifted.");
+
+    var transfer = new ItemTransfer
+    {
+        ItemId = item.Id,
+        CampaignId = campaignId,
+        FromUserId = user.Id,
+        ToUserId = request.ToUserId,
+        ToCharacterId = recipientMembership.CharacterId.Value,
+        Status = TransferStatus.Pending
+    };
+    db.ItemTransfers.Add(transfer);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { transfer.Id });
+});
+
+app.MapGet("/api/campaigns/{campaignId:guid}/transfers/incoming", async (
+    Guid campaignId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound();
+
+    var transfers = await db.ItemTransfers
+        .Where(t => t.CampaignId == campaignId
+                 && t.ToUserId == user.Id
+                 && t.Status == TransferStatus.Pending)
+        .Include(t => t.Item)
+        .ToListAsync();
+
+    var result = transfers.Select(t => new
+    {
+        transferId = t.Id,
+        fromUserId = t.FromUserId,
+        item = ItemDto.From(t.Item)
+    });
+
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/campaigns/{campaignId:guid}/transfers/outgoing", async (
+    Guid campaignId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound();
+
+    var transfers = await db.ItemTransfers
+        .Where(t => t.CampaignId == campaignId
+                 && t.FromUserId == user.Id
+                 && t.Status == TransferStatus.Pending)
+        .Select(t => new { transferId = t.Id, itemId = t.ItemId, toUserId = t.ToUserId })
+        .ToListAsync();
+
+    return Results.Ok(transfers);
+});
+
+app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/accept", async (
+    Guid campaignId, Guid transferId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var transfer = await db.ItemTransfers
+        .Include(t => t.Item)
+        .FirstOrDefaultAsync(t => t.Id == transferId && t.CampaignId == campaignId);
+    if (transfer is null) return Results.NotFound();
+
+    // Only the recipient can accept
+    if (transfer.ToUserId != user.Id) return Results.Forbid();
+    if (transfer.Status != TransferStatus.Pending) return Results.BadRequest("Transfer already resolved.");
+
+    // The item might have been deleted or moved since the offer — guard it
+    var item = transfer.Item;
+    if (item is null) { transfer.Status = TransferStatus.Rejected; await db.SaveChangesAsync(); return Results.NotFound("Item no longer exists."); }
+
+    // Move the item to the recipient's character
+    // (clear any slot on the sender's side first, in case they equipped it after offering)
+    var oldSlots = await db.EquipmentSlots
+        .Where(s => s.ItemId == item.Id)
+        .ToListAsync();
+    foreach (var s in oldSlots) s.ItemId = null;
+
+    item.CharacterId = transfer.ToCharacterId;
+    item.VaultId = null;
+
+    transfer.Status = TransferStatus.Accepted;
+    await db.SaveChangesAsync();
+
+    return Results.Ok();
+});
+
+app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/reject", async (
+    Guid campaignId, Guid transferId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var transfer = await db.ItemTransfers
+        .FirstOrDefaultAsync(t => t.Id == transferId && t.CampaignId == campaignId);
+    if (transfer is null) return Results.NotFound();
+
+    // Either the recipient (declining) or the sender (cancelling) can reject
+    if (transfer.ToUserId != user.Id && transfer.FromUserId != user.Id)
+        return Results.Forbid();
+    if (transfer.Status != TransferStatus.Pending) return Results.BadRequest("Transfer already resolved.");
+
+    transfer.Status = TransferStatus.Rejected;
+    await db.SaveChangesAsync();
+
+    return Results.Ok();
+});
+
+app.MapPost("/api/campaigns/{campaignId:guid}/vault/items/{itemId:guid}/send-to-character", async (
+    Guid campaignId, Guid itemId, SendVaultItemRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var membership = await GetMembership(campaignId, user, db);
+    if (membership is null) return Results.NotFound();
+    if (membership.Role != CampaignRole.Gm)
+        return Results.Forbid();   // only the GM distributes from the campaign vault
+
+    var campaign = await db.Campaigns.FirstAsync(c => c.Id == campaignId);
+
+    // Item must be in this campaign's vault
+    var item = await db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == campaign.VaultId);
+    if (item is null) return Results.NotFound("Item not in this campaign's vault.");
+
+    // Target must be a player in this campaign with a character
+    var targetMembership = await db.CampaignMemberships
+        .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == request.ToUserId);
+    if (targetMembership?.CharacterId is null)
+        return Results.BadRequest("Target player has no character in this campaign.");
+
+    // Move ownership: campaign vault → player's character
+    item.VaultId = null;
+    item.CharacterId = targetMembership.CharacterId.Value;
+
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.Run();
 
 // ---------- Helpers ----------
@@ -1209,3 +1421,5 @@ record RenameCharacterRequest(string Name);
 record CreateCampaignRequest(string Name);
 record JoinCampaignRequest(string InviteCode, Guid CharacterId);
 record ReturnToCampaignVaultRequest(Guid ItemId);
+record GiftItemRequest(Guid ItemId, Guid ToUserId);
+record SendVaultItemRequest(Guid ToUserId);

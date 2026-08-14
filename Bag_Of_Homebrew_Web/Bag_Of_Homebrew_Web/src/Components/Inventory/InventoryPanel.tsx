@@ -22,9 +22,13 @@ interface Props {
   sendToCharacterTargets?: { id: string; name: string }[];
   onSendToCharacter?: (itemId: string, characterId: string) => void;
   inCampaign?: boolean;
+  giftTargets?: { userId: string; name: string }[];
+  onGift?: (itemId: string, toUserId: string) => void;
+  onAcceptTransfer?: (transferId: string) => void;
+  onRejectTransfer?: (transferId: string) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -90,6 +94,10 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           onSendToCharacter={onSendToCharacter}
           onClose={() => setContextMenu(null)}
           inCampaign={inCampaign}
+          giftTargets={giftTargets}
+          onGift={onGift}
+          onAcceptTransfer={onAcceptTransfer}
+          onRejectTransfer={onRejectTransfer}
         />
       )}
 

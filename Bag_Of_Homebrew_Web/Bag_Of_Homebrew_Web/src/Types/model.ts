@@ -12,6 +12,8 @@ export interface Item {
   properties: Record<string, unknown>;
   createdAt: string;
   quantity?: number;
+  __pendingIncoming?: string;   // transferId if this is an incoming gift awaiting accept/reject
+  __pendingOutgoing?: boolean;  // true if this item is offered out, awaiting recipient
 }
 
 export type SlotType =

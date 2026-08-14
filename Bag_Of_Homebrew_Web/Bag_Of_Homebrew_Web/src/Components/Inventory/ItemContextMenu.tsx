@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import type { Item, SlotType } from '../../Types/model';
 import { validSlotsFor, SLOT_LABELS } from './ItemSlotRules';
-import { useState } from 'react';
 
 interface Props {
   item: Item;
@@ -9,37 +9,103 @@ interface Props {
   onEquip?: (itemId: string, slotType: SlotType, twoHanded?: boolean) => void;
   onReturnToVault?: (itemId: string) => void;
   onDeleteRequest: (item: Item) => void;
-  onAdjustQuantity?: (itemId: string, delta: number) => void; 
-  onClose: () => void;
+  onAdjustQuantity?: (itemId: string, delta: number) => void;
   sendToCharacterTargets?: { id: string; name: string }[];
   onSendToCharacter?: (itemId: string, characterId: string) => void;
+  giftTargets?: { userId: string; name: string }[];
+  onGift?: (itemId: string, toUserId: string) => void;
+  onAcceptTransfer?: (transferId: string) => void;
+  onRejectTransfer?: (transferId: string) => void;
   inCampaign?: boolean;
+  onClose: () => void;
 }
 
-export function ItemContextMenu({ item, x, y, onEquip, onDeleteRequest, onAdjustQuantity, onClose, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false}: Props) {
+export function ItemContextMenu({
+  item,
+  x,
+  y,
+  onEquip,
+  onReturnToVault,
+  onDeleteRequest,
+  onAdjustQuantity,
+  sendToCharacterTargets,
+  onSendToCharacter,
+  giftTargets,
+  onGift,
+  onAcceptTransfer,
+  onRejectTransfer,
+  inCampaign = false,
+  onClose,
+}: Props) {
+  const [charSubmenuOpen, setCharSubmenuOpen] = useState(false);
+  const [giftSubmenuOpen, setGiftSubmenuOpen] = useState(false);
+
+  // ─────────────────────────────────────────────
+  // Early returns: pending gift states
+  // ─────────────────────────────────────────────
+  if (item.__pendingIncoming) {
+    return (
+      <>
+        <div
+          className="context-menu-backdrop"
+          onClick={onClose}
+          onContextMenu={(e) => { e.preventDefault(); onClose(); }}
+        />
+        <div className="context-menu" style={{ top: y, left: x }}>
+          <button
+            className="context-menu__item"
+            onClick={() => { onAcceptTransfer?.(item.__pendingIncoming!); onClose(); }}
+          >
+            Accept gift
+          </button>
+          <button
+            className="context-menu__item context-menu__item--danger"
+            onClick={() => { onRejectTransfer?.(item.__pendingIncoming!); onClose(); }}
+          >
+            Reject gift
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  if (item.__pendingOutgoing) {
+    return (
+      <>
+        <div
+          className="context-menu-backdrop"
+          onClick={onClose}
+          onContextMenu={(e) => { e.preventDefault(); onClose(); }}
+        />
+        <div className="context-menu" style={{ top: y, left: x }}>
+          <div className="context-menu__item context-menu__item--disabled">Awaiting recipient…</div>
+        </div>
+      </>
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Normal menu
+  // ─────────────────────────────────────────────
   const slots = validSlotsFor(item);
   const handedness = item.properties['handedness'] as string | undefined;
   const isVersatile = item.category === 'Weapon' && handedness === 'Versatile';
   const isTwoHanded = item.category === 'Weapon' && handedness === 'TwoHanded';
-  const [submenuOpen, setSubmenuOpen] = useState(false);
 
-  // Two-handed weapons can only main-hand
   const equipSlots = isTwoHanded
     ? slots.filter((s) => s === 'WeaponSet1Main' || s === 'WeaponSet2Main')
     : slots;
 
   const showEquip = !!onEquip && equipSlots.length > 0;
-  const canSend = !!onSendToCharacter && !!sendToCharacterTargets;
+  const canSendToCharacter = !!onSendToCharacter && !!sendToCharacterTargets;
+  const canGift = !!onGift && !!giftTargets && giftTargets.length > 0;
 
   return (
     <>
       <div
         className="context-menu-backdrop"
         onClick={onClose}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onClose();
-        }}
+        onContextMenu={(e) => { e.preventDefault(); onClose(); }}
       />
       <div className="context-menu" style={{ top: y, left: x }}>
         {/* Equip options — character mode only */}
@@ -77,23 +143,32 @@ export function ItemContextMenu({ item, x, y, onEquip, onDeleteRequest, onAdjust
             );
           })}
 
-        {/* If equip handler exists but no valid slots, show a disabled hint */}
         {!!onEquip && equipSlots.length === 0 && (
           <div className="context-menu__item context-menu__item--disabled">Can't be equipped</div>
         )}
 
-        {/* Send to Character — vault mode only */}
-        {canSend && (
+        {/* Return to Vault — character mode */}
+        {onReturnToVault && (
+          <button
+            className="context-menu__item"
+            onClick={() => { onReturnToVault(item.id); onClose(); }}
+          >
+            {inCampaign ? 'Return to Campaign Vault' : 'Return to Vault'}
+          </button>
+        )}
+
+        {/* Send to Character — personal vault mode */}
+        {canSendToCharacter && (
           <div
             className="context-menu__submenu-parent"
-            onMouseEnter={() => setSubmenuOpen(true)}
-            onMouseLeave={() => setSubmenuOpen(false)}
+            onMouseEnter={() => setCharSubmenuOpen(true)}
+            onMouseLeave={() => setCharSubmenuOpen(false)}
           >
             <button className="context-menu__item context-menu__item--submenu">
               Send to Character
               <span className="context-menu__chevron">▸</span>
             </button>
-            {submenuOpen && (
+            {charSubmenuOpen && (
               <div className="context-menu context-menu--sub">
                 {sendToCharacterTargets!.length === 0 ? (
                   <div className="context-menu__item context-menu__item--disabled">No characters</div>
@@ -113,25 +188,45 @@ export function ItemContextMenu({ item, x, y, onEquip, onDeleteRequest, onAdjust
           </div>
         )}
 
-        {/* Consumable use — both modes */}
-          {item.category === 'Consumable' && onAdjustQuantity && (
-            <button
-              className="context-menu__item"
-              onClick={() => { onAdjustQuantity(item.id, -1); onClose(); }}
-              disabled={(item.quantity ?? 0) <= 0}
-            >
-              Use one ({item.quantity ?? 0} left)
+        {/* Send to Player — campaign mode */}
+        {canGift && (
+          <div
+            className="context-menu__submenu-parent"
+            onMouseEnter={() => setGiftSubmenuOpen(true)}
+            onMouseLeave={() => setGiftSubmenuOpen(false)}
+          >
+            <button className="context-menu__item context-menu__item--submenu">
+              Send to Player
+              <span className="context-menu__chevron">▸</span>
             </button>
-          )}
+            {giftSubmenuOpen && (
+              <div className="context-menu context-menu--sub">
+                {giftTargets!.map((t) => (
+                  <button
+                    key={t.userId}
+                    className="context-menu__item"
+                    onClick={() => { onGift!(item.id, t.userId); onClose(); }}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Return to Vault — character mode only */}
-        {onReturnToVault && (
-          <button className="context-menu__item" onClick={() => { onReturnToVault(item.id); onClose(); }}>
-            {inCampaign ? 'Return to Campaign Vault' : 'Return to Vault'}
+        {/* Consumable use */}
+        {item.category === 'Consumable' && onAdjustQuantity && (
+          <button
+            className="context-menu__item"
+            onClick={() => { onAdjustQuantity(item.id, -1); onClose(); }}
+            disabled={(item.quantity ?? 0) <= 0}
+          >
+            Use one ({item.quantity ?? 0} left)
           </button>
         )}
 
-        {/* Delete — both modes */}
+        {/* Delete */}
         <div className="context-menu__divider" />
         <button
           className="context-menu__item context-menu__item--danger"

@@ -13,47 +13,80 @@ interface SlotProps {
   onAdjustQuantity?: (itemId: string, delta: number) => void;
 }
 
-function DraggableSlot({ item, isSelected, onSelect, onContextMenu, onAdjustQuantity }: SlotProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id });
+  export function DraggableSlot({ item, isSelected, onSelect, onContextMenu, onAdjustQuantity }: SlotProps) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+      id: item.id,
+      // Don't let pending items be dragged into equipment slots
+      disabled: !!item.__pendingIncoming || !!item.__pendingOutgoing,
+    });
 
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={`inventory-slot ${rarityFrameClass(item)} ${isSelected ? 'inventory-slot--selected' : ''} ${
-        isDragging ? 'inventory-slot--dragging' : ''
-      }`}
-      onClick={() => onSelect(item)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onContextMenu(item, e.clientX, e.clientY);
-      }}
-    >
-      {item.imageUrl ? (
-        <img src={imageSrc(item.imageUrl)} alt={item.name} draggable={false} />
-      ) : (
-        <div className="inventory-slot__placeholder" />    
-      )}
+    const classes = [
+      'inventory-slot',
+      rarityFrameClass(item),
+      isSelected ? 'inventory-slot--selected' : '',
+      isDragging ? 'inventory-slot--dragging' : '',
+      item.__pendingIncoming ? 'inventory-slot--pending-in' : '',
+      item.__pendingOutgoing ? 'inventory-slot--pending-out' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
-      {item.isPlotFlagged && <span className="plot-dot" />}
+    return (
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        className={classes}
+        onClick={() => onSelect(item)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onContextMenu(item, e.clientX, e.clientY);
+        }}
+      >
+        {item.imageUrl ? (
+          <img src={imageSrc(item.imageUrl)} alt={item.name} draggable={false} />
+        ) : (
+          <div className="inventory-slot__placeholder" />
+        )}
 
-      {item.category === 'Consumable' && onAdjustQuantity && (
-        <div className="qty-stepper" onPointerDown={(e) => e.stopPropagation()}>
-          <button
-            className="qty-stepper__btn"
-            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, -1); }}
-            disabled={(item.quantity ?? 0) <= 0}
-          >−</button>
-          <span className="qty-stepper__count">{item.quantity ?? 0}</span>
-          <button
-            className="qty-stepper__btn"
-            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, 1); }}
-          >+</button>
-        </div>
-      )}
-    </div>
-  );
+        {/* Rarity/plot indicators */}
+        {item.isPlotFlagged && <span className="plot-dot" />}
+
+        {/* Incoming gift — present icon */}
+        {item.__pendingIncoming && (
+          <span className="pending-badge pending-badge--in" title="Incoming gift">
+            <i className="fa-solid fa-gift"></i>
+          </span>
+        )}
+
+        {/* Outgoing pending — clock icon */}
+        {item.__pendingOutgoing && (
+          <span className="pending-badge pending-badge--out" title="Awaiting recipient">
+            <i className="fa-regular fa-hourglass-half"></i>
+          </span>
+        )}
+
+        {/* Consumable quantity stepper */}
+        {item.category === 'Consumable' && onAdjustQuantity && (
+          <div className="qty-stepper" onPointerDown={(e) => e.stopPropagation()}>
+            <button
+              className="qty-stepper__btn"
+              onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, -1); }}
+              disabled={(item.quantity ?? 0) <= 0}
+            >
+              −
+            </button>
+            <span className="qty-stepper__count">{item.quantity ?? 0}</span>
+            <button
+              className="qty-stepper__btn"
+              onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, 1); }}
+            >
+              +
+            </button>
+          </div>
+        )}
+      </div>
+    );
 }
 
 interface Props {
