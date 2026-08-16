@@ -175,6 +175,9 @@ app.MapPost("/api/vaults/{vaultId:guid}/items", async (
     if (user is null) return Results.Unauthorized();
     if (!await OwnsVault(vaultId, user, db)) return Results.NotFound();
 
+    if (!await CanAddItem(user, db))
+        return Results.BadRequest("You've reached the 50-item limit. Upgrade for unlimited storage.");
+
     if (string.IsNullOrWhiteSpace(request.Name))
         return Results.BadRequest("Item name is required.");
     if (!Enum.TryParse<ItemCategory>(request.Category, out var category))
@@ -319,6 +322,9 @@ app.MapPost("/api/characters/{characterId:guid}/items", async (
     var ownsCharacter = await db.Characters
         .AnyAsync(c => c.Id == characterId && c.UserId == user.Id);
     if (!ownsCharacter) return Results.NotFound();
+
+    if (!await CanAddItem(user, db))
+        return Results.BadRequest("You've reached the 50-item limit. Upgrade for unlimited storage.");
 
     if (string.IsNullOrWhiteSpace(request.Name))
         return Results.BadRequest("Item name is required.");
@@ -1259,6 +1265,9 @@ app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/accept
     if (transfer.ToUserId != user.Id) return Results.Forbid();
     if (transfer.Status != TransferStatus.Pending) return Results.BadRequest("Transfer already resolved.");
 
+    if (!await CanAddItem(user, db))
+        return Results.BadRequest("Your inventory is full (50 items). Delete something to accept this gift, or reject it.");
+
     // The item might have been deleted or moved since the offer — guard it
     var item = transfer.Item;
     if (item is null) { transfer.Status = TransferStatus.Rejected; await db.SaveChangesAsync(); return Results.NotFound("Item no longer exists."); }
@@ -1322,6 +1331,10 @@ app.MapPost("/api/campaigns/{campaignId:guid}/vault/items/{itemId:guid}/send-to-
         .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == request.ToUserId);
     if (targetMembership?.CharacterId is null)
         return Results.BadRequest("Target player has no character in this campaign.");
+
+    var targetUser = await db.Users.FirstAsync(u => u.Id == targetMembership.UserId);
+    if (!await CanAddItem(targetUser, db))
+        return Results.BadRequest("That player's inventory is full. They'll need to make room first.");
 
     // Move ownership: campaign vault → player's character
     item.VaultId = null;
@@ -1406,6 +1419,15 @@ app.MapDelete("/api/campaigns/{campaignId:guid}", async (Guid campaignId, HttpCo
     }
 
     return Results.Ok();
+});
+
+app.MapGet("/api/me/item-usage", async (HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var count = await CountUserItems(user, db);
+    return Results.Ok(new { count, limit = user.IsPaid ? (int?)null : 50, isPaid = user.IsPaid });
 });
 
 app.Run();
@@ -1494,6 +1516,35 @@ static async Task<bool> OwnsVault(Guid vaultId, User user, AppDbContext db)
 static async Task<CampaignMembership?> GetMembership(Guid campaignId, User user, AppDbContext db)
     => await db.CampaignMemberships
         .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == user.Id);
+
+// Total item slots a user occupies across their characters and personal vault.
+static async Task<int> CountUserItems(User user, AppDbContext db)
+{
+    // Their personal vault id
+    var personalVaultId = await db.Vaults
+        .Where(v => v.UserId == user.Id)
+        .Select(v => (Guid?)v.Id)
+        .FirstOrDefaultAsync();
+
+    // Their character ids
+    var characterIds = await db.Characters
+        .Where(c => c.UserId == user.Id)
+        .Select(c => c.Id)
+        .ToListAsync();
+
+    return await db.Items.CountAsync(i =>
+        (i.CharacterId != null && characterIds.Contains(i.CharacterId.Value)) ||
+        (personalVaultId != null && i.VaultId == personalVaultId));
+}
+
+const int FreeItemLimit = 50;
+
+// True if this user is allowed to gain one more item.
+static async Task<bool> CanAddItem(User user, AppDbContext db)
+{
+    if (user.IsPaid) return true;
+    return await CountUserItems(user, db) < FreeItemLimit;
+}
 
 // ---------- Request records ----------
 

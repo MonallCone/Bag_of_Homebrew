@@ -3,6 +3,7 @@ import type { Item } from '../../Types/model';
 import { InventoryPanel } from '../Inventory/InventoryPanel';
 import type { CreateItemPayload } from '../Inventory/CreateItemModal';
 import { type ApiItem, toItem } from '../../api/item';
+import { useToast } from '../Toast/ToastProvider';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -17,6 +18,7 @@ interface Props {
 export function CampaignVaultTab({ campaignId, isGm, players = []}: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const { showToast } = useToast();
 
   const loadItems = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}/vault/items`, { credentials: 'include' });
@@ -50,7 +52,13 @@ export function CampaignVaultTab({ campaignId, isGm, players = []}: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ toUserId }),
     });
-    if (res.ok) { if (selectedItem?.id === itemId) setSelectedItem(null); await loadItems(); }
+    if (res.ok) {
+      if (selectedItem?.id === itemId) setSelectedItem(null);
+      await loadItems();
+    } else {
+      const msg = await res.text().catch(() => '');
+      showToast(msg || 'Could not send the item.', 'error');
+    }
   };
 
   return (

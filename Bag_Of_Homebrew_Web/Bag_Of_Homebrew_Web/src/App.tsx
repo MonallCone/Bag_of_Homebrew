@@ -13,6 +13,7 @@ import { NewCampaignModal } from './Components/Campaign/NewCampaignModal';
 import { JoinCampaignModal } from './Components/Campaign/JoinCampaignModal';
 import { DeleteCampaignModal } from './Components/Nav/DeleteCampaignModal';
 import { ConfirmLeaveModal } from './Components/Nav/ConfirmLeaveModal';
+import { ToastProvider } from './Components/Toast/ToastProvider';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -38,9 +39,11 @@ interface CampaignSummary {
 
 function App(){
   return (
-    <BrowserRouter>
-      <AppShell />
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
+    </ToastProvider>
   )
 }
 

@@ -9,6 +9,8 @@ import { type SortOption, SORT_LABELS, sortItems } from './sortOptions';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import type { CurrencyAmounts } from './coins';
 import { CurrencyBar } from './CurrencyBar';
+import type { ItemUsage } from '../../api/itemUsage';
+import { ItemUsageIndicator } from './ItemUsageIndicator';
 
 type TabValue = 'All' | ItemCategory | 'PlotItems';
 
@@ -31,9 +33,10 @@ interface Props {
   currency?: CurrencyAmounts;
   onCurrencyChange?: (amounts: CurrencyAmounts) => void;
   currencyReadOnly?: boolean;
+  itemUsage?: ItemUsage | null;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly, itemUsage }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -66,6 +69,7 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           {currency && onCurrencyChange && (
             <CurrencyBar amounts={currency} readOnly={currencyReadOnly} onChange={onCurrencyChange} />
           )}
+          {itemUsage && <ItemUsageIndicator usage={itemUsage} />}
           <div className="sort-bar">
             <label className="sort-bar__label">
               Sort

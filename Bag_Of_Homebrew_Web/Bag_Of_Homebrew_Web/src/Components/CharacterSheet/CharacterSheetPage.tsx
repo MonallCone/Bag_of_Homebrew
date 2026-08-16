@@ -14,6 +14,8 @@ import { AcShield } from './AcShield';
 import { type ApiItem, toItem } from '../../api/item';
 import { HealthHeart } from './HealthHeart';
 import type { CurrencyAmounts } from '../Inventory/coins';
+import { useToast } from '../Toast/ToastProvider';
+import { useItemUsage } from '../../api/itemUsage';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -58,6 +60,8 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
   const [currency, setCurrency] = useState<CurrencyAmounts>({
     platinum: 0, gold: 0, electrum: 0, silver: 0, copper: 0,
   });
+  const { showToast } = useToast();
+  const { usage, refreshUsage } = useItemUsage();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -106,8 +110,12 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('Create failed');
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');   // ← read the actual backend message
+      throw new Error(msg || 'Create failed');          // ← use it, fall back only if empty
+    }
     await loadItems();
+    await refreshUsage();
   };
 
   const equipItem = async (itemId: string, slotType: SlotType, twoHanded = false) => {
@@ -183,6 +191,7 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
       if (selectedItem?.id === itemId) setSelectedItem(null);
       await Promise.all([loadItems(), loadSlots()]);
     }
+    await refreshUsage();
   };
 
   const adjustQuantity = async (itemId: string, delta: number) => {
@@ -264,6 +273,7 @@ const returnToVault = async (itemId: string) => {
       if (selectedItem?.id === itemId) setSelectedItem(null);
       await Promise.all([loadItems(), loadSlots()]);
     }
+    await refreshUsage();
   };
 
   const loadEverything = useCallback(async () => {
@@ -309,7 +319,14 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
     const res = await fetch(`${API_BASE}/api/campaigns/${campaign.campaignId}/transfers/${transferId}/accept`, {
       method: 'POST', credentials: 'include',
     });
-    if (res.ok) { await loadItems(); campaign.onTransfersChanged?.(); }
+    if (res.ok) {
+      await loadItems();
+      campaign.onTransfersChanged?.();
+      await refreshUsage();
+    } else {
+      const msg = await res.text().catch(() => '');
+      showToast(msg || 'Could not accept the gift.', 'error');
+    }
   };
 
   const rejectTransfer = async (transferId: string) => {
@@ -401,6 +418,7 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
         currency={currency}
         onCurrencyChange={handleCurrencyChange}
         currencyReadOnly={readOnly}
+        itemUsage={usage}
       />
     </div>
 

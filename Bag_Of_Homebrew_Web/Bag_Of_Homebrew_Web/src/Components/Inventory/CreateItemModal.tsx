@@ -81,8 +81,8 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
         quantity: category === 'Consumable' ? Number(quantity) || 1 : undefined,
       });
       onClose();
-    } catch {
-      setError('Could not save the item. Check the API is running and try again.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save the item.');
       setSaving(false);
     }
   };

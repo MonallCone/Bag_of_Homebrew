@@ -3,8 +3,6 @@ import type { Item } from '../../Types/model';
 import {imageSrc} from '../../api/images'
 import { rarityFrameClass } from './rarityStyles';
 
-const GRID_SIZE = 50;
-
 interface SlotProps {
   item: Item;
   isSelected: boolean;
@@ -95,10 +93,16 @@ interface Props {
   onSelect: (item: Item) => void;
   onContextMenu: (item: Item, x: number, y: number) => void;
   onAdjustQuantity?: (itemId: string, delta: number) => void;
+  isPaid?: boolean;
 }
 
-export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu, onAdjustQuantity }: Props) {
-  const slots = Array.from({ length: GRID_SIZE }, (_, i) => items[i] ?? null);
+export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu, onAdjustQuantity, isPaid }: Props) {
+  const FREE_CAP = 50;
+  const filledCount = items.length;
+  const gridSize = isPaid
+    ? Math.max(50, filledCount + 10)   // paid: always 10 empty slots of headroom
+    : FREE_CAP;     
+  const slots = Array.from({ length: gridSize }, (_, i) => items[i] ?? null);
 
   return (
     <div className="inventory-slot-grid">

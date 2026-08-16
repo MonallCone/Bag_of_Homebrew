@@ -56,7 +56,10 @@ export function VaultView({ vaultId, vaultName, characters }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Create failed');
+        if (!res.ok) {
+          const msg = await res.text().catch(() => '');
+          throw new Error(msg || 'Create failed');
+        }
         await loadItems();
     };
 

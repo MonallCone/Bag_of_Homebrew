@@ -24,7 +24,7 @@ export function CurrencyBar({ amounts, readOnly = false, onChange }: Props) {
             <button className="currency-coin__step" onClick={() => step(coin.key, 1)} aria-label={`Add ${coin.abbr}`}>+</button>
           )}
           <div className="currency-coin__body" onClick={() => !readOnly && setShowModal(true)}>
-            <i className="fa-light fa-coins currency-coin__icon" />
+            <i className="fa-solid fa-coins currency-coin__icon" />
             <span className="currency-coin__amount">{amounts[coin.key]}</span>
             <span className="currency-coin__abbr">{coin.abbr}</span>
           </div>
