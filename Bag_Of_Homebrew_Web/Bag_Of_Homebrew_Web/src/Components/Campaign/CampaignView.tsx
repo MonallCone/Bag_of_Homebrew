@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CampaignVaultTab } from './CampaignVaultTab';
 import { CharacterSheetPage } from '../CharacterSheet/CharacterSheetPage';
 import { type ApiItem} from '../../api/item';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -36,9 +37,12 @@ interface OutgoingTransfer { transferId: string; itemId: string; toUserId: strin
 export function CampaignView({ campaignId, currentUserId }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [campaign, setCampaign] = useState<CampaignInfo | null>(null);
-  const [tab, setTab] = useState<Tab>({ kind: 'vault' });
   const [incoming, setIncoming] = useState<IncomingTransfer[]>([]);
   const [outgoing, setOutgoing] = useState<OutgoingTransfer[]>([]);
+  const navigate = useNavigate();
+  const params = useParams();
+  const location = useLocation();
+
 
   const loadMembers = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}/members`, { credentials: 'include' });
@@ -68,6 +72,15 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
   const isGm = campaign?.isGm ?? false;
   const players = members.filter((m) => !m.isGm);
 
+  const playerUserId = params.userId;
+  const isPlayerTab = location.pathname.includes('/player/');
+  const activeTab: Tab = isPlayerTab && playerUserId
+    ? { kind: 'player', userId: playerUserId }
+    : { kind: 'vault' };
+
+  const goToVault = () => navigate(`/campaign/${campaignId}/vault`);
+  const goToPlayer = (userId: string) => navigate(`/campaign/${campaignId}/player/${userId}`);
+
   return (
     <div className="campaign-view">
       <div className="campaign-view__header">
@@ -79,8 +92,8 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
 
       <div className="campaign-tabs">
         <button
-          className={`campaign-tabs__tab ${tab.kind === 'vault' ? 'campaign-tabs__tab--active' : ''}`}
-          onClick={() => setTab({ kind: 'vault' })}
+          className={`campaign-tabs__tab ${activeTab.kind === 'vault' ? 'campaign-tabs__tab--active' : ''}`}
+          onClick={goToVault}
         >
           🐉 Campaign Vault
         </button>
@@ -88,9 +101,9 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
             <button
                 key={p.userId}
                 className={`campaign-tabs__tab ${
-                tab.kind === 'player' && tab.userId === p.userId ? 'campaign-tabs__tab--active' : ''
+                activeTab.kind === 'player' && activeTab.userId === p.userId ? 'campaign-tabs__tab--active' : ''
                 } ${p.userId === currentUserId ? 'campaign-tabs__tab--you' : ''}`}
-                onClick={() => setTab({ kind: 'player', userId: p.userId })}
+                onClick={() => goToPlayer(p.userId)}
             >
                 {p.characterName ?? p.userName}
             </button>
@@ -100,13 +113,13 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
       <div className="campaign-view__body">
         <div className="campaign-view__body">
             <div className="campaign-view__body">
-            {tab.kind === 'vault' ? (
+            {activeTab.kind === 'vault' ? (
                 <CampaignVaultTab campaignId={campaignId} isGm={isGm} players={players.filter((p) => p.characterId)}/>
             ) : (() => {
-                const player = players.find((p) => p.userId === tab.userId);
+                const player = players.find((p) => p.userId === activeTab.userId);
                 if (!player?.characterId) return <p className="campaign-view__placeholder">No character.</p>;
 
-                const isYou = tab.userId === currentUserId;
+                const isYou = activeTab.userId === currentUserId;
                 return (
                 <CharacterSheetPage
                   key={player.characterId}
@@ -115,7 +128,7 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
                   campaign={{
                     campaignId,
                     campaignVaultId: campaign!.vaultId,
-                    memberUserId: isYou ? undefined : tab.userId,
+                    memberUserId: isYou ? undefined : activeTab.userId,
                     giftTargets: players
                       .filter((p) => p.userId !== currentUserId && p.characterId)  // other players with characters
                       .map((p) => ({ userId: p.userId, name: p.characterName ?? p.userName })),

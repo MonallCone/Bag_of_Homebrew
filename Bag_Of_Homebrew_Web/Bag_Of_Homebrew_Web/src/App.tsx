@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CharacterSheetPage } from './Components/CharacterSheet/CharacterSheetPage';
 import { VaultView } from './Components/Vault/VaultView';
 import { BurgerMenu } from './Components/Nav/BurgerMenu';
@@ -35,16 +36,17 @@ interface CampaignSummary {
   isGm: boolean;
 }
 
-// What's currently on screen
-type View =
-  | { kind: 'vault' }
-  | { kind: 'character'; id: string }
-  | { kind: 'campaign'; id: string };
+function App(){
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  )
+}
 
-function App() {
+function AppShell() {
   const [session, setSession] = useState<Session | null | 'loading'>('loading');
   const [characters, setCharacters] = useState<CharacterSummary[]>([]);
-  const [view, setView] = useState<View>({ kind: 'vault' });
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewCharacter, setShowNewCharacter] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
@@ -55,6 +57,8 @@ function App() {
   const [showJoinCampaign, setShowJoinCampaign] = useState(false);
   const [deleteCampaignTarget, setDeleteCampaignTarget] = useState<{ id: string; name: string } | null>(null);
   const [leaveCampaignTarget, setLeaveCampaignTarget] = useState<{ id: string; name: string } | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
@@ -62,22 +66,18 @@ function App() {
       .then((data) => {
         if (!data) { setSession(null); return; }
         setSession({ displayName: data.displayName, vaultId: data.vaultId, userId: data.id });
-        setIsPaid(data.isPaid ?? false);        // ← add this line
-        if (data.characterId) setView({ kind: 'character', id: data.characterId });
+        setIsPaid(data.isPaid ?? false);
       })
       .catch(() => setSession(null));
   }, []);
 
   const loadCharacters = () => {
     fetch(`${API_BASE}/api/characters`, { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setCharacters);
+      .then((r) => (r.ok ? r.json() : [])).then(setCharacters);
   };
-
   const loadCampaigns = () => {
     fetch(`${API_BASE}/api/campaigns`, { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setCampaigns);
+      .then((r) => (r.ok ? r.json() : [])).then(setCampaigns);
   };
 
   useEffect(() => {
@@ -100,7 +100,7 @@ function App() {
     }
     const created = await res.json();
     loadCharacters();                        // refresh the menu list
-    setView({ kind: 'character', id: created.id }); // jump to the new character
+    navigate(`/character/${created.id}`); // jump to the new character
   };
 
   const canAddCharacter = isPaid || characters.length === 0;
@@ -123,7 +123,7 @@ function App() {
     });
     if (!res.ok) throw new Error('Delete failed');
     // If the deleted character was on screen, fall back to the vault
-    if (view.kind === 'character' && view.id === id) setView({ kind: 'vault' });
+    if (location.pathname.includes('/character/${id}')) navigate('/vault');      
     loadCharacters();
   };
 
@@ -136,7 +136,7 @@ function App() {
     if (!res.ok) { const m = await res.text().catch(() => ''); throw new Error(m || 'Create failed'); }
     const created = await res.json();
     loadCampaigns();
-    setView({ kind: 'campaign', id: created.id });
+    navigate(`/campaign/${created.id}`);  
   };
 
   const joinCampaign = async (inviteCode: string, characterId: string) => {
@@ -148,13 +148,13 @@ function App() {
     if (!res.ok) { const m = await res.text().catch(() => ''); throw new Error(m || 'Join failed'); }
     const joined = await res.json();
     loadCampaigns();
-    setView({ kind: 'campaign', id: joined.id });
+    navigate(`/campaign/${joined.campaignId}/player/${joined.userId}`); 
   };
 
   const deleteCampaign = async (id: string) => {
     const res = await fetch(`${API_BASE}/api/campaigns/${id}`, { method: 'DELETE', credentials: 'include' });
     if (res.ok) {
-      if (view.kind === 'campaign' && view.id === id) setView({ kind: 'vault' });
+      if (location.pathname.includes('/campaign/${id}')) navigate('/vault');  
       loadCampaigns();
     }
   };
@@ -162,7 +162,7 @@ function App() {
   const leaveCampaign = async (id: string) => {
     const res = await fetch(`${API_BASE}/api/campaigns/${id}/leave`, { method: 'POST', credentials: 'include' });
     if (res.ok) {
-      if (view.kind === 'campaign' && view.id === id) setView({ kind: 'vault' });
+      if (location.pathname.includes('/campaign/${id}')) navigate('/vault');  
       loadCampaigns();
     }
   };
@@ -176,12 +176,12 @@ function App() {
             characters={characters}
             campaigns={campaigns}
             vaultId={session.vaultId}
-            currentView={view}
+            currentView={location.pathname}
             canAddCharacter={canAddCharacter}
             canCreateCampaign={isPaid}
-            onSelectVault={() => { setView({ kind: 'vault' }); setMenuOpen(false); }}
-            onSelectCharacter={(id) => { setView({ kind: 'character', id }); setMenuOpen(false); }}
-            onSelectCampaign={(id) => { setView({ kind: 'campaign', id }); setMenuOpen(false); }}
+            onSelectVault={() => { navigate('/vault'); setMenuOpen(false); }}
+            onSelectCharacter={(id) => { navigate(`/character/${id}`);  setMenuOpen(false); }}
+            onSelectCampaign={(id) => { navigate(`/campaign/${id}`);   setMenuOpen(false); }}
             onAddCharacter={() => { setMenuOpen(false); setShowNewCharacter(true); }}
             onCreateCampaign={() => { setMenuOpen(false); setShowCreateCampaign(true); }}
             onJoinCampaign={() => { setMenuOpen(false); setShowJoinCampaign(true); }}
@@ -193,21 +193,24 @@ function App() {
           />
       )}
 
+      <Routes>
+        <Route path="/" element={<Navigate to="/vault" replace />} />
+        <Route
+          path="/vault"
+          element={<VaultView vaultId={session.vaultId} vaultName="Dragon's Vault" characters={characters} />}
+        />
+        <Route path="/character/:characterId" element={<CharacterRoute vaultId={session.vaultId} />} />
+        <Route path="/campaign/:campaignId" element={<CampaignRoute currentUserId={session.userId} />} />
+        <Route path="/campaign/:campaignId/vault" element={<CampaignRoute currentUserId={session.userId} />} />
+        <Route path="/campaign/:campaignId/player/:userId" element={<CampaignRoute currentUserId={session.userId} />} />
+        <Route path="*" element={<Navigate to="/vault" replace />} />
+      </Routes>
+
       {showNewCharacter && (
         <NewCharacterModal
           onCreate={createCharacter}
           onClose={() => setShowNewCharacter(false)}
         />
-      )}
-
-      {view.kind === 'vault' && (
-        <VaultView vaultId={session.vaultId} vaultName="Dragon's Vault" characters={characters} />
-      )}
-      {view.kind === 'character' && (
-        <CharacterSheetPage key={view.id} characterId={view.id} vaultId={session.vaultId} />
-      )}
-      {view.kind === 'campaign' && (
-        <CampaignView key={view.id} campaignId={view.id} currentUserId={session.userId} />
       )}
 
       {showCreateCampaign && (
@@ -249,6 +252,16 @@ function App() {
     )}
     </>
   );
+}
+
+function CharacterRoute({ vaultId }: { vaultId: string }) {
+  const { characterId } = useParams();
+  return <CharacterSheetPage key={characterId} characterId={characterId!} vaultId={vaultId} />;
+}
+
+function CampaignRoute({ currentUserId }: { currentUserId: string }) {
+  const { campaignId } = useParams();
+  return <CampaignView key={campaignId} campaignId={campaignId!} currentUserId={currentUserId} />;
 }
 
 export default App;

@@ -14,16 +14,11 @@ interface CampaignSummary {
   isGm: boolean;
 }
 
-type View =
-  | { kind: 'vault' }
-  | { kind: 'character'; id: string }
-  | { kind: 'campaign'; id: string };
-
 interface Props {
   characters: CharacterSummary[];
   campaigns: CampaignSummary[];
   vaultId: string;
-  currentView: View;
+  currentView: string;
   canAddCharacter: boolean;
   canCreateCampaign: boolean;
   onSelectVault: () => void;
@@ -70,7 +65,7 @@ export function NavPanel({
         <div className="nav-panel__section">
           <span className="nav-panel__label">Storage</span>
           <button
-            className={`nav-panel__item ${currentView.kind === 'vault' ? 'nav-panel__item--active' : ''}`}
+            className={`nav-panel__item ${currentView=== '/vault' ? 'nav-panel__item--active' : ''}`}
             onClick={onSelectVault}
           >
             🐉 Dragon's Vault
@@ -87,7 +82,7 @@ export function NavPanel({
               <button
                 key={c.id}
                 className={`nav-panel__item ${
-                  currentView.kind === 'character' && currentView.id === c.id ? 'nav-panel__item--active' : ''
+                  currentView.startsWith('/character/${c.id}') ? 'nav-panel__item--active' : ''
                 }`}
                 onClick={() => onSelectCharacter(c.id)}
                 onContextMenu={(e) => {
@@ -117,7 +112,7 @@ export function NavPanel({
               <button
                 key={c.id}
                 className={`nav-panel__item ${
-                  currentView.kind === 'campaign' && currentView.id === c.id ? 'nav-panel__item--active' : ''
+                  currentView.startsWith('/campaign/${c.id}') ? 'nav-panel__item--active' : ''
                 }`}
                 onClick={() => onSelectCampaign(c.id)}
                 onContextMenu={(e) => {
