@@ -10,6 +10,8 @@ import { DeleteCharacterModal } from './Components/Nav/DeleteCharacterModal';
 import { CampaignView } from './Components/Campaign/CampaignView';
 import { NewCampaignModal } from './Components/Campaign/NewCampaignModal';
 import { JoinCampaignModal } from './Components/Campaign/JoinCampaignModal';
+import { DeleteCampaignModal } from './Components/Nav/DeleteCampaignModal';
+import { ConfirmLeaveModal } from './Components/Nav/ConfirmLeaveModal';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -51,6 +53,8 @@ function App() {
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showJoinCampaign, setShowJoinCampaign] = useState(false);
+  const [deleteCampaignTarget, setDeleteCampaignTarget] = useState<{ id: string; name: string } | null>(null);
+  const [leaveCampaignTarget, setLeaveCampaignTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
@@ -147,6 +151,22 @@ function App() {
     setView({ kind: 'campaign', id: joined.id });
   };
 
+  const deleteCampaign = async (id: string) => {
+    const res = await fetch(`${API_BASE}/api/campaigns/${id}`, { method: 'DELETE', credentials: 'include' });
+    if (res.ok) {
+      if (view.kind === 'campaign' && view.id === id) setView({ kind: 'vault' });
+      loadCampaigns();
+    }
+  };
+
+  const leaveCampaign = async (id: string) => {
+    const res = await fetch(`${API_BASE}/api/campaigns/${id}/leave`, { method: 'POST', credentials: 'include' });
+    if (res.ok) {
+      if (view.kind === 'campaign' && view.id === id) setView({ kind: 'vault' });
+      loadCampaigns();
+    }
+  };
+
   return (
     <>
       <BurgerMenu onClick={() => setMenuOpen(true)} />
@@ -168,6 +188,8 @@ function App() {
             onRenameCharacter={(id, name) => { setMenuOpen(false); setRenameTarget({ id, name }); }}
             onDeleteCharacter={(id, name) => { setMenuOpen(false); setDeleteTarget({ id, name }); }}
             onClose={() => setMenuOpen(false)}
+            onDeleteCampaign={(id, name) => { setMenuOpen(false); setDeleteCampaignTarget({ id, name }); }}
+            onLeaveCampaign={(id, name) => { setMenuOpen(false); setLeaveCampaignTarget({ id, name }); }}
           />
       )}
 
@@ -208,6 +230,21 @@ function App() {
         characterName={deleteTarget.name}
         onConfirm={() => deleteCharacter(deleteTarget.id)}
         onClose={() => setDeleteTarget(null)}
+      />
+    )}
+
+    {deleteCampaignTarget && (
+      <DeleteCampaignModal
+        campaignName={deleteCampaignTarget.name}
+        onConfirm={() => deleteCampaign(deleteCampaignTarget.id)}
+        onClose={() => setDeleteCampaignTarget(null)}
+      />
+    )}
+    {leaveCampaignTarget && (
+      <ConfirmLeaveModal
+        campaignName={leaveCampaignTarget.name}
+        onConfirm={() => leaveCampaign(leaveCampaignTarget.id)}
+        onClose={() => setLeaveCampaignTarget(null)}
       />
     )}
     </>

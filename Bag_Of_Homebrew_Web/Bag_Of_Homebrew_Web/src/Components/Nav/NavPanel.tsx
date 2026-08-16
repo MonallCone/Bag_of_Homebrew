@@ -35,6 +35,8 @@ interface Props {
   onRenameCharacter: (id: string, currentName: string) => void;
   onDeleteCharacter: (id: string, name: string) => void;
   onClose: () => void;
+  onDeleteCampaign: (id: string, name: string) => void;
+  onLeaveCampaign: (id: string, name: string) => void;
 }
 
 export function NavPanel({
@@ -52,8 +54,11 @@ export function NavPanel({
   onRenameCharacter,
   onDeleteCharacter,
   onClose,
+  onLeaveCampaign,
+  onDeleteCampaign
 }: Props) {
   const [charMenu, setCharMenu] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
+  const [campMenu, setCampMenu] = useState<{ id: string; name: string; isGm: boolean; x: number; y: number } | null>(null);
 
   return (
     <>
@@ -115,6 +120,10 @@ export function NavPanel({
                   currentView.kind === 'campaign' && currentView.id === c.id ? 'nav-panel__item--active' : ''
                 }`}
                 onClick={() => onSelectCampaign(c.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setCampMenu({id: c.id, name: c.name, isGm: c.isGm, x: e.clientX, y: e.clientY});
+                }}
               >
                 {c.isGm ? '👑 ' : '⚔️ '}{c.name}
               </button>
@@ -165,6 +174,33 @@ export function NavPanel({
           </div>
         </>
       )}
+
+      {campMenu && (
+      <>
+        <div
+          className="context-menu-backdrop context-menu-backdrop--nav"
+          onClick={() => setCampMenu(null)}
+          onContextMenu={(e) => { e.preventDefault(); setCampMenu(null); }}
+        />
+        <div className="context-menu context-menu--nav" style={{ top: campMenu.y, left: campMenu.x }}>
+          {campMenu.isGm ? (
+            <button
+              className="context-menu__item context-menu__item--danger"
+              onClick={() => { onDeleteCampaign(campMenu.id, campMenu.name); setCampMenu(null); }}
+            >
+              Delete Campaign
+            </button>
+          ) : (
+            <button
+              className="context-menu__item context-menu__item--danger"
+              onClick={() => { onLeaveCampaign(campMenu.id, campMenu.name); setCampMenu(null); }}
+            >
+              Leave Campaign
+            </button>
+          )}
+        </div>
+      </> 
+    )}
     </>
   );
 }

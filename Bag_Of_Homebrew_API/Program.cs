@@ -920,6 +920,13 @@ app.MapPost("/api/campaigns/{campaignId:guid}/leave", async (Guid campaignId, Ht
     if (membership.Role == CampaignRole.Gm)
         return Results.BadRequest("The GM can't leave; delete the campaign instead.");
 
+    var orphanedTransfers = await db.ItemTransfers
+    .Where(t => t.CampaignId == campaignId
+             && t.Status == TransferStatus.Pending
+             && (t.FromUserId == user.Id || t.ToUserId == user.Id))
+    .ToListAsync();
+    db.ItemTransfers.RemoveRange(orphanedTransfers);
+
     db.CampaignMemberships.Remove(membership);
     await db.SaveChangesAsync();
     return Results.Ok();
@@ -1362,6 +1369,45 @@ app.MapPut("/api/characters/{characterId:guid}/currency", async (
 
     return Results.Ok();
 });
+
+app.MapDelete("/api/campaigns/{campaignId:guid}", async (Guid campaignId, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId);
+    if (campaign is null) return Results.NotFound();
+
+    // Only the GM (owner) can delete
+    if (campaign.GmUserId != user.Id) return Results.Forbid();
+
+    // 1. Pending/resolved transfers in this campaign
+    var transfers = await db.ItemTransfers.Where(t => t.CampaignId == campaignId).ToListAsync();
+    db.ItemTransfers.RemoveRange(transfers);
+
+    // 2. Items in the campaign vault
+    var vaultItems = await db.Items.Where(i => i.VaultId == campaign.VaultId).ToListAsync();
+    db.Items.RemoveRange(vaultItems);
+
+    // 3. Memberships
+    var memberships = await db.CampaignMemberships.Where(m => m.CampaignId == campaignId).ToListAsync();
+    db.CampaignMemberships.RemoveRange(memberships);
+
+    // 4. The campaign itself (must go before the vault due to the FK from Campaign → Vault)
+    var vault = await db.Vaults.FirstOrDefaultAsync(v => v.Id == campaign.VaultId);
+    db.Campaigns.Remove(campaign);
+    await db.SaveChangesAsync();   // save so the Campaign→Vault FK is cleared
+
+    // 5. The vault itself
+    if (vault is not null)
+    {
+        db.Vaults.Remove(vault);
+        await db.SaveChangesAsync();
+    }
+
+    return Results.Ok();
+});
+
 app.Run();
 
 // ---------- Helpers ----------
@@ -1477,3 +1523,5 @@ record JoinCampaignRequest(string InviteCode, Guid CharacterId);
 record ReturnToCampaignVaultRequest(Guid ItemId);
 record GiftItemRequest(Guid ItemId, Guid ToUserId);
 record SendVaultItemRequest(Guid ToUserId);
+record UpdateHealthRequest(int? CurrentHp, int? MaxHp, int? TempHp);
+record UpdateCurrencyRequest(int Platinum, int Gold, int Electrum, int Silver, int Copper);
