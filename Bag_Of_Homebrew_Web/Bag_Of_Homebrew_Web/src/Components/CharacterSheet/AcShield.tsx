@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { EquipmentSlotData } from '../../Types/model';
 
 interface Props {
@@ -9,6 +9,10 @@ interface Props {
 
 export function AcShield({ slots, manualAc, onManualAcChange }: Props) {
   const [value, setValue] = useState(manualAc);
+
+  useEffect(() => {
+    setValue(manualAc);
+  }, [manualAc]);
 
   // Read AC from equipped chest + shield armour
   const equippedAc = (() => {

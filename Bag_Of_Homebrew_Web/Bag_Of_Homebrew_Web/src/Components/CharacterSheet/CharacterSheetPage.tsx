@@ -12,6 +12,8 @@ import { validSlotsFor } from '../Inventory/ItemSlotRules';
 import { WeaponSummary } from './WeaponSummary';
 import { AcShield } from './AcShield';
 import { type ApiItem, toItem } from '../../api/item';
+import { HealthHeart } from './HealthHeart';
+import type { CurrencyAmounts } from '../Inventory/coins';
 
 const API_BASE = 'https://localhost:7238';
 
@@ -50,8 +52,12 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [manualAc, setManualAc] = useState('');
-
-  console.log('loader', { readOnly, memberUserId: campaign?.memberUserId, characterId });
+  const [currentHp, setCurrentHp] = useState<number | null>(null);
+  const [maxHp, setMaxHp] = useState<number | null>(null);
+  const [tempHp, setTempHp] = useState<number | null>(null);
+  const [currency, setCurrency] = useState<CurrencyAmounts>({
+    platinum: 0, gold: 0, electrum: 0, silver: 0, copper: 0,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -85,6 +91,10 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
       setPortraitUrl(c.portraitUrl);
       setSheetUrl(c.pdfSheetUrl);
       setManualAc(c.manualAc ?? '');
+      setCurrentHp(c.currentHp);
+      setMaxHp(c.maxHp);
+      setTempHp(c.tempHp);
+      setCurrency({platinum: c.platinum, gold: c.gold, electrum: c.electrum, silver: c.silver, copper: c.copper});
     }
   }, [characterId]);
 
@@ -271,6 +281,10 @@ const returnToVault = async (itemId: string) => {
       setManualAc(d.manualAc ?? '');
       setItems((d.items as ApiItem[]).map(toItem));
       setSlots((d.slots as ApiSlot[]).map((s) => ({ slotType: s.slotType, item: s.item ? toItem(s.item) : null })));
+      setCurrentHp(d.currentHp);
+      setMaxHp(d.maxHp);
+      setTempHp(d.tempHp);
+      setCurrency({platinum: d.platinum, gold: d.gold, electrum: d.electrum, silver: d.silver, copper: d.copper});
     }
   } else {
     // Own character — the existing separate loaders
@@ -322,6 +336,26 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
 
   const displayItems = [...ownItems, ...incomingItems];
 
+  const handleHealthChange = async (c: number | null, m: number | null, t: number | null) => {
+  if (readOnly) return;
+    setCurrentHp(c); setMaxHp(m); setTempHp(t);
+    await fetch(`${API_BASE}/api/characters/${characterId}/health`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentHp: c, maxHp: m, tempHp: t }),
+    });
+  };
+
+  const handleCurrencyChange = async (next: CurrencyAmounts) => {
+    if (readOnly) return;
+    setCurrency(next);
+    await fetch(`${API_BASE}/api/characters/${characterId}/currency`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(next),
+    });
+  };
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
@@ -338,6 +372,7 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
           />
           <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
         </div>
+        <HealthHeart currentHp={currentHp} maxHp={maxHp} tempHp={tempHp} readOnly={readOnly} onChange={handleHealthChange}/>
         <AcShield slots={slots} manualAc={manualAc} onManualAcChange={handleAcChange} />
         <WeaponRow slots={bySlotOrder(WEAPON_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} linkedOffHands={linkedOffHands}/>
         <div className="character-sheet-page__bottom-section">
@@ -363,6 +398,9 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
         onAcceptTransfer={readOnly ? undefined : acceptTransfer}
         onRejectTransfer={readOnly ? undefined : rejectTransfer}
         giftTargets={campaign?.giftTargets}
+        currency={currency}
+        onCurrencyChange={handleCurrencyChange}
+        currencyReadOnly={readOnly}
       />
     </div>
 

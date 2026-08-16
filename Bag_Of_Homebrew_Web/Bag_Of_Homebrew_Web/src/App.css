@@ -1409,3 +1409,245 @@ body {
   background: #8C897F;
   color: #17171B;
 }
+
+.health-heart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.health-heart__badge {
+  position: relative;
+  width: 84px;
+  height: 78px;
+}
+
+.health-heart__svg { width: 100%; height: 100%; display: block; }
+
+.health-heart__shape {
+  fill: #2A1416;
+  stroke: #B03A3A;
+  stroke-width: 3;
+}
+
+.health-heart__values {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.health-heart__hp {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.health-heart__input {
+  width: 26px;
+  background: transparent;
+  border: none;
+  color: #F0E4E4;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+}
+.health-heart__input:focus { outline: none; }
+
+.health-heart__slash { color: #B03A3A; font-size: 14px; }
+
+.health-heart__readonly {
+  color: #F0E4E4;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.health-heart__temp {
+  font-size: 10px;
+  color: #E0B33D;
+}
+
+.health-heart__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.health-heart__step {
+  width: 22px;
+  height: 22px;
+  background: #37373D;
+  color: #E8E4DB;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.health-heart__step:hover { background: #B03A3A; color: #17171B; }
+
+.health-heart__edit {
+  background: transparent;
+  border: 1px solid #37373D;
+  color: #8C897F;
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.health-heart__edit:hover { border-color: #B03A3A; color: #E8E4DB; }
+
+.health-modal__delta {
+  display: flex;
+  gap: 6px;
+}
+.health-modal__delta input { flex: 1; }
+
+.inventory-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.currency-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.currency-coin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.currency-coin__body {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.currency-coin__icon { font-size: 12px; }
+.currency-coin__amount { font-variant-numeric: tabular-nums; }
+.currency-coin__abbr { font-size: 10px; opacity: 0.8; }
+
+.currency-coin__step {
+  width: 16px;
+  height: 14px;
+  background: #2A2A2E;
+  color: #E8E4DB;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+}
+.currency-coin__step:hover:not(:disabled) { background: #C4761F; color: #17171B; }
+.currency-coin__step:disabled { opacity: 0.3; cursor: default; }
+
+/* Modal */
+.currency-modal__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.currency-modal__row {
+  display: grid;
+  grid-template-columns: 60px 70px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.currency-modal__label {
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.currency-modal__set,
+.currency-modal__delta input {
+  background: #1D1D21;
+  border: 1px solid #37373D;
+  border-radius: 4px;
+  color: #E8E4DB;
+  padding: 6px;
+  font-size: 13px;
+}
+.currency-modal__delta {
+  display: flex;
+  gap: 4px;
+}
+.currency-modal__delta input { flex: 1; min-width: 0; }
+.currency-modal__apply {
+  background: #37373D;
+  color: #E8E4DB;
+  border: none;
+  border-radius: 4px;
+  padding: 0 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.currency-modal__apply:hover { background: #C4761F; color: #17171B; }
+
+.currency-convert {
+  background: #1D1D21;
+  border: 1px solid #37373D;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.currency-convert__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #8C897F;
+}
+
+.currency-convert__header select {
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 4px;
+  color: #E8E4DB;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.currency-convert__result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.currency-convert__coin {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.currency-convert__empty {
+  color: #8C897F;
+  font-size: 13px;
+}

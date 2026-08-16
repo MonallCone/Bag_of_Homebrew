@@ -681,7 +681,15 @@ app.MapGet("/api/characters/{characterId:guid}", async (Guid characterId, HttpCo
         character.Name,
         character.PortraitUrl,
         character.PdfSheetUrl,
-        character.ManualAc
+        character.ManualAc,
+        character.CurrentHp,
+        character.MaxHp,
+        character.TempHp,
+        character.Platinum,
+        character.Gold,
+        character.Electrum,
+        character.Silver,
+        character.Copper
     });
 });
 
@@ -1083,6 +1091,14 @@ app.MapGet("/api/campaigns/{campaignId:guid}/members/{memberUserId:guid}/charact
         character.PortraitUrl,
         character.PdfSheetUrl,
         character.ManualAc,
+        character.CurrentHp,
+        character.MaxHp,
+        character.TempHp,
+        character.Platinum,
+        character.Gold,
+        character.Electrum,
+        character.Silver,
+        character.Copper,
         items,
         slots,
         isOwn
@@ -1308,6 +1324,44 @@ app.MapPost("/api/campaigns/{campaignId:guid}/vault/items/{itemId:guid}/send-to-
     return Results.Ok();
 });
 
+app.MapPut("/api/characters/{characterId:guid}/health", async (
+    Guid characterId, UpdateHealthRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    character.CurrentHp = request.CurrentHp;
+    character.MaxHp = request.MaxHp;
+    character.TempHp = request.TempHp;
+    await db.SaveChangesAsync();
+
+    return Results.Ok();
+});
+
+app.MapPut("/api/characters/{characterId:guid}/currency", async (
+    Guid characterId, UpdateCurrencyRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    var character = await db.Characters
+        .FirstOrDefaultAsync(c => c.Id == characterId && c.UserId == user.Id);
+    if (character is null) return Results.NotFound();
+
+    // Coins can't go negative
+    character.Platinum = Math.Max(0, request.Platinum);
+    character.Gold = Math.Max(0, request.Gold);
+    character.Electrum = Math.Max(0, request.Electrum);
+    character.Silver = Math.Max(0, request.Silver);
+    character.Copper = Math.Max(0, request.Copper);
+    await db.SaveChangesAsync();
+
+    return Results.Ok();
+});
 app.Run();
 
 // ---------- Helpers ----------

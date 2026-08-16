@@ -7,6 +7,8 @@ import { CreateItemModal, type CreateItemPayload } from './CreateItemModal';
 import { ItemContextMenu } from './ItemContextMenu';
 import { type SortOption, SORT_LABELS, sortItems } from './sortOptions';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import type { CurrencyAmounts } from './coins';
+import { CurrencyBar } from './CurrencyBar';
 
 type TabValue = 'All' | ItemCategory | 'PlotItems';
 
@@ -26,9 +28,12 @@ interface Props {
   onGift?: (itemId: string, toUserId: string) => void;
   onAcceptTransfer?: (transferId: string) => void;
   onRejectTransfer?: (transferId: string) => void;
+  currency?: CurrencyAmounts;
+  onCurrencyChange?: (amounts: CurrencyAmounts) => void;
+  currencyReadOnly?: boolean;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly }: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -57,15 +62,20 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           <ItemDetailPanel item={selectedItem} onClose={() => onSelectItem(null)} />
         )}
 
-        <div className="sort-bar">
-          <label className="sort-bar__label">
-            Sort
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)}>
-              {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-                <option key={key} value={key}>{SORT_LABELS[key]}</option>
-              ))}
-            </select>
-          </label>
+        <div className="inventory-toolbar">
+          {currency && onCurrencyChange && (
+            <CurrencyBar amounts={currency} readOnly={currencyReadOnly} onChange={onCurrencyChange} />
+          )}
+          <div className="sort-bar">
+            <label className="sort-bar__label">
+              Sort
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)}>
+                {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                  <option key={key} value={key}>{SORT_LABELS[key]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <InventoryGrid

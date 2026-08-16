@@ -14,5 +14,14 @@
         public List<Item> Items { get; set; } = new();
         public List<EquipmentSlot> EquipmentSlots { get; set; } = new();
         public string? ManualAc {  get; set; }
+        public int? CurrentHp { get; set; }
+        public int? MaxHp { get; set; }
+        public int? TempHp { get; set; }
+        public int Platinum { get; set; }
+        public int Gold { get; set; }
+        public int Electrum { get; set; }
+        public int Silver { get; set; }
+        public int Copper { get; set; }
+
     }
 }
