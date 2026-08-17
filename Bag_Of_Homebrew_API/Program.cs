@@ -83,9 +83,8 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Kicks off the Google login flow. Hit this via a full page navigation (not fetch).
 app.MapGet("/api/auth/login", () => Results.Challenge(
-    new AuthenticationProperties { RedirectUri = "http://localhost:5173" },
+    new AuthenticationProperties { RedirectUri = "/" },
     new[] { GoogleDefaults.AuthenticationScheme }));
 
 app.MapPost("/api/auth/logout", async (HttpContext ctx) =>
