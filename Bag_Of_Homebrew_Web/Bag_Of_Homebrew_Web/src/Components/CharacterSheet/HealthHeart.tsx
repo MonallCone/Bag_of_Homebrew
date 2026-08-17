@@ -73,7 +73,7 @@ export function HealthHeart({ currentHp, maxHp, tempHp, readOnly = false, onChan
           )}
 
           {(tempHp ?? 0) > 0 && (
-            <span className="health-heart__temp">temp {tempHp}</span>
+            <span className="health-heart__temp">{tempHp}</span>
           )}
         </div>
       </div>

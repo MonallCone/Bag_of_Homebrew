@@ -1471,8 +1471,13 @@ body {
 }
 
 .health-heart__temp {
-  font-size: 10px;
-  color: #E0B33D;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8FCFFF;
+  text-shadow:
+    0 0 4px rgba(120, 190, 255, 0.9),
+    0 0 8px rgba(120, 190, 255, 0.6),
+    0 0 12px rgba(90, 160, 255, 0.4);
 }
 
 .health-heart__controls {
