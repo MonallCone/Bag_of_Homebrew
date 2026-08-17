@@ -3,8 +3,7 @@ import { CampaignVaultTab } from './CampaignVaultTab';
 import { CharacterSheetPage } from '../CharacterSheet/CharacterSheetPage';
 import { type ApiItem} from '../../api/item';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from '../../config';
 
 interface Member {
   userId: string;

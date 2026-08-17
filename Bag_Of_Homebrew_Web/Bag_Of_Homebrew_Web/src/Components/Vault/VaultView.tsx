@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Item } from '../../Types/model';
 import { InventoryPanel } from '../Inventory/InventoryPanel';
 import type { CreateItemPayload } from '../Inventory/CreateItemModal';
-
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from '../../config';
 
 interface ApiItem extends Omit<Item, 'properties'> {
   propertiesJson: string;

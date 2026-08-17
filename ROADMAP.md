@@ -46,22 +46,10 @@ Not features — the gap between "works locally" and "works for users."
 - [ ] SPA fallback in the API so react-router deep links survive refresh.
 - [ ] Cookie / CORS simplification for same-origin production.
 - [ ] Deploy to Railway (API + Postgres). Set a **usage/spend cap** immediately.
+- [ ] Landing / home page
 - [ ] Update Google OAuth redirect URIs to the production domain.
 - [ ] End-to-end test on the deployed environment.
 - [ ] (Later, optional) custom domain — free subdomain is fine to launch.
-
----
-
-## v1 polish (small gaps in what's already built)
-
-- [ ] Verify currency icons render (`fa-light` is Font Awesome **Pro**; swap to
-      `fa-solid fa-coins` if on the free CDN).
-- [ ] Dynamic vault grid size (free = fixed 50; paid = grows with headroom) —
-      confirm applied everywhere.
-- [ ] Audit all mutation handlers surface backend `BadRequest` messages (read
-      `res.text()`), not generic errors.
-- [ ] Confirm local-state components re-sync on prop change (health / AC pattern)
-      wherever a component holds an editable copy.
 
 ---
 

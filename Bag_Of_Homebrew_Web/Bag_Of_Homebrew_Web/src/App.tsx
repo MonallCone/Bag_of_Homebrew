@@ -14,8 +14,7 @@ import { JoinCampaignModal } from './Components/Campaign/JoinCampaignModal';
 import { DeleteCampaignModal } from './Components/Nav/DeleteCampaignModal';
 import { ConfirmLeaveModal } from './Components/Nav/ConfirmLeaveModal';
 import { ToastProvider } from './Components/Toast/ToastProvider';
-
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from './config';
 
 interface Session {
   displayName: string;

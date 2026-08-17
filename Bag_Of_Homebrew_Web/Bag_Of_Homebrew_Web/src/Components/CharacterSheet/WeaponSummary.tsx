@@ -61,7 +61,6 @@ function EquippedRow({ item, onUpdateProperties }: { item: Item; onUpdatePropert
   const save = () => onUpdateProperties(item.id, { range, attackMod, damageMod });
 
   const damageDie = p.damage ?? '';
-  const damageDisplay = damageMod ? `${damageDie} ${damageMod.startsWith('+') || damageMod.startsWith('-') ? damageMod : '+' + damageMod}` : damageDie;
 
   return (
     <div className="weapon-summary__row weapon-summary__row--equipped">

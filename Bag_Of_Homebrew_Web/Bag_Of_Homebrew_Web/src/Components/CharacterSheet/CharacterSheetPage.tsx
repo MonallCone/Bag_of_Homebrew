@@ -16,8 +16,7 @@ import { HealthHeart } from './HealthHeart';
 import type { CurrencyAmounts } from '../Inventory/coins';
 import { useToast } from '../Toast/ToastProvider';
 import { useItemUsage } from '../../api/itemUsage';
-
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from '../../config';
 
 interface ApiSlot {
   slotType: SlotType;

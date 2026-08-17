@@ -1,4 +1,4 @@
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from '../config';
 
 export async function uploadImage(file: File, kind: 'items' | 'portraits' | 'sheets'): Promise<string> {
   const formData = new FormData();

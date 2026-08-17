@@ -20,8 +20,18 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(options =>
 {
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    if (builder.Environment.IsDevelopment())
+    {
+        // Dev: frontend :5173 + API :7238 are cross-origin → needs None + Secure
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    }
+    else
+    {
+        // Prod: API serves the frontend (same origin) → Lax is safer
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    }
 })
 .AddGoogle(options =>
 {
@@ -32,50 +42,30 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddCors(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.AddPolicy("ReactApp", policy =>
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials());
-});
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("ReactApp", policy =>
+            policy.WithOrigins("http://localhost:5173")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials());
+    });
+}
 
 var app = builder.Build();
 
-app.UseCors("ReactApp");
-app.UseStaticFiles();
-app.UseAuthentication();
-app.UseAuthorization();
-
-// DEV ONLY — remove before any real deployment
 if (app.Environment.IsDevelopment())
 {
-    app.MapGet("/api/dev/login-as/{name}", async (string name, HttpContext ctx, AppDbContext db) =>
-    {
-        // Find or create a fake user keyed by a fake "GoogleId"
-        var fakeGoogleId = $"dev-{name}";
-        var user = await db.Users.FirstOrDefaultAsync(u => u.GoogleId == fakeGoogleId);
-        if (user is null)
-        {
-            user = new User { GoogleId = fakeGoogleId, Email = $"{name}@dev.local", DisplayName = name };
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-        }
-
-        // Sign them in with the same cookie scheme Google uses
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, fakeGoogleId),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.DisplayName)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-
-        return Results.Redirect("http://localhost:5173");
-    });
+    app.UseCors("ReactApp");
 }
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Kicks off the Google login flow. Hit this via a full page navigation (not fetch).
 app.MapGet("/api/auth/login", () => Results.Challenge(
@@ -1430,6 +1420,7 @@ app.MapGet("/api/me/item-usage", async (HttpContext ctx, AppDbContext db) =>
     return Results.Ok(new { count, limit = user.IsPaid ? (int?)null : 50, isPaid = user.IsPaid });
 });
 
+app.MapFallbackToFile("index.html");
 app.Run();
 
 // ---------- Helpers ----------

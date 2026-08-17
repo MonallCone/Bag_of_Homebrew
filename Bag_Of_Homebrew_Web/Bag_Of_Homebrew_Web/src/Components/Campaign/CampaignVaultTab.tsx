@@ -4,8 +4,7 @@ import { InventoryPanel } from '../Inventory/InventoryPanel';
 import type { CreateItemPayload } from '../Inventory/CreateItemModal';
 import { type ApiItem, toItem } from '../../api/item';
 import { useToast } from '../Toast/ToastProvider';
-
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from '../../config';
 
 interface Player { userId: string; characterName: string | null; userName: string; }
 

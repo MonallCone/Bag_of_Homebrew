@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-const API_BASE = 'https://localhost:7238';
+import { API_BASE } from '../config';
 
 export interface ItemUsage {
   count: number;
