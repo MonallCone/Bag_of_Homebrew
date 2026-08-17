@@ -4,6 +4,7 @@ using Bag_Of_Homebrew_API.Model;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -55,6 +56,11 @@ if (builder.Environment.IsDevelopment())
 }
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 using (var scope = app.Services.CreateScope())
 {
