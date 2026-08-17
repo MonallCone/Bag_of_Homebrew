@@ -5,7 +5,7 @@ WORKDIR /app/web
 COPY Bag_Of_Homebrew_Web/Bag_Of_HomebrewBag_Of_Homebrew_Web/package*.json ./
 RUN npm install
 
-COPY Bag_Of_Homebrew_Web/Bag_Of_HomebrewBag_Of_Homebrew_Web/ ./
+COPY Bag_Of_Homebrew_Web/Bag_Of_Homebrew/Bag_Of_Homebrew_Web/ ./
 RUN npm run build
 # Produces /app/web/dist
 
