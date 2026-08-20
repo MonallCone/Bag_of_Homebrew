@@ -13,8 +13,9 @@ import { NewCampaignModal } from './Components/Campaign/NewCampaignModal';
 import { JoinCampaignModal } from './Components/Campaign/JoinCampaignModal';
 import { DeleteCampaignModal } from './Components/Nav/DeleteCampaignModal';
 import { ConfirmLeaveModal } from './Components/Nav/ConfirmLeaveModal';
-import { ToastProvider } from './Components/Toast/ToastProvider';
+import { ToastProvider, useToast} from './Components/Toast/ToastProvider';
 import { API_BASE } from './config';
+import { LandingPage } from './Components/Marketing/LandingPage';
 
 interface Session {
   displayName: string;
@@ -61,6 +62,7 @@ function AppShell() {
   const [leaveCampaignTarget, setLeaveCampaignTarget] = useState<{ id: string; name: string } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
@@ -87,7 +89,7 @@ function AppShell() {
   }, [session]);
 
   if (session === 'loading') return <p>Checking session...</p>;
-  if (!session) return <a href={`${API_BASE}/api/auth/login`}>Login with Google</a>;
+  if (!session) return <LandingPage />;
 
   const createCharacter = async (name: string) => {
     const res = await fetch(`${API_BASE}/api/characters`, {
@@ -98,7 +100,7 @@ function AppShell() {
     });
     if (!res.ok) {
       const msg = await res.text().catch(() => '');
-      throw new Error(msg || 'Create failed');
+      showToast(msg || 'Could not create character', 'error');
     }
     const created = await res.json();
     loadCharacters();                        // refresh the menu list
@@ -135,10 +137,13 @@ function AppShell() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
-    if (!res.ok) { const m = await res.text().catch(() => ''); throw new Error(m || 'Create failed'); }
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      showToast(msg || 'Could not create campaign', 'error');
+    }
     const created = await res.json();
     loadCampaigns();
-    navigate(`/campaign/${created.id}`);  
+    navigate(`/campaign/${created.id}`);
   };
 
   const joinCampaign = async (inviteCode: string, characterId: string) => {
@@ -169,6 +174,12 @@ function AppShell() {
     }
   };
 
+  const logout = async () => {
+    await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    setSession(null);          // clears session → lands back on the landing page
+    navigate('/');
+  };
+
   return (
     <>
       <BurgerMenu onClick={() => setMenuOpen(true)} />
@@ -180,7 +191,7 @@ function AppShell() {
             vaultId={session.vaultId}
             currentView={location.pathname}
             canAddCharacter={canAddCharacter}
-            canCreateCampaign={isPaid}
+            canCreateCampaign={true}
             onSelectVault={() => { navigate('/vault'); setMenuOpen(false); }}
             onSelectCharacter={(id) => { navigate(`/character/${id}`);  setMenuOpen(false); }}
             onSelectCampaign={(id) => { navigate(`/campaign/${id}`);   setMenuOpen(false); }}
@@ -192,6 +203,7 @@ function AppShell() {
             onClose={() => setMenuOpen(false)}
             onDeleteCampaign={(id, name) => { setMenuOpen(false); setDeleteCampaignTarget({ id, name }); }}
             onLeaveCampaign={(id, name) => { setMenuOpen(false); setLeaveCampaignTarget({ id, name }); }}
+            onLogout={() => {setMenuOpen(false); logout();}}
           />
       )}
 
@@ -201,10 +213,10 @@ function AppShell() {
           path="/vault"
           element={<VaultView vaultId={session.vaultId} vaultName="Dragon's Vault" characters={characters} />}
         />
-        <Route path="/character/:characterId" element={<CharacterRoute vaultId={session.vaultId} />} />
-        <Route path="/campaign/:campaignId" element={<CampaignRoute currentUserId={session.userId} />} />
-        <Route path="/campaign/:campaignId/vault" element={<CampaignRoute currentUserId={session.userId} />} />
-        <Route path="/campaign/:campaignId/player/:userId" element={<CampaignRoute currentUserId={session.userId} />} />
+        <Route path="/character/:characterId" element={<CharacterRoute vaultId={session.vaultId} isPaid={isPaid} />} />
+        <Route path="/campaign/:campaignId" element={<CampaignRoute currentUserId={session.userId} isPaid={isPaid}/>} />
+        <Route path="/campaign/:campaignId/vault" element={<CampaignRoute currentUserId={session.userId} isPaid={isPaid}/>} />
+        <Route path="/campaign/:campaignId/player/:userId" element={<CampaignRoute currentUserId={session.userId} isPaid={isPaid}/>} />
         <Route path="*" element={<Navigate to="/vault" replace />} />
       </Routes>
 
@@ -256,14 +268,14 @@ function AppShell() {
   );
 }
 
-function CharacterRoute({ vaultId }: { vaultId: string }) {
+function CharacterRoute({ vaultId, isPaid }: { vaultId: string, isPaid: boolean }) {
   const { characterId } = useParams();
-  return <CharacterSheetPage key={characterId} characterId={characterId!} vaultId={vaultId} />;
+  return <CharacterSheetPage key={characterId} characterId={characterId!} vaultId={vaultId} isPaid={isPaid}/>;
 }
 
-function CampaignRoute({ currentUserId }: { currentUserId: string }) {
+function CampaignRoute({ currentUserId, isPaid }: { currentUserId: string, isPaid: boolean}) {
   const { campaignId } = useParams();
-  return <CampaignView key={campaignId} campaignId={campaignId!} currentUserId={currentUserId} />;
+  return <CampaignView key={campaignId} campaignId={campaignId!} currentUserId={currentUserId} isPaid={isPaid}/>;
 }
 
 export default App;

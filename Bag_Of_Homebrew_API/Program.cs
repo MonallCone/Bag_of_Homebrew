@@ -83,9 +83,40 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/api/auth/login", () => Results.Challenge(
-    new AuthenticationProperties { RedirectUri = "/" },
-    new[] { GoogleDefaults.AuthenticationScheme }));
+// ⚠️ DEV ONLY — DELETE BEFORE DEPLOYING. Logs in as any fake user by name.
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/api/dev/login-as/{name}", async (string name, HttpContext ctx, AppDbContext db) =>
+    {
+        var fakeGoogleId = $"dev-{name}";
+        var user = await db.Users.FirstOrDefaultAsync(u => u.GoogleId == fakeGoogleId);
+        if (user is null)
+        {
+            user = new User { GoogleId = fakeGoogleId, Email = $"{name}@dev.local", DisplayName = name };
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, fakeGoogleId),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.DisplayName)
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+        return Results.Redirect("http://localhost:5173");
+    });
+}
+
+app.MapGet("/api/auth/login", (IWebHostEnvironment env) =>
+{
+    var redirectUri = env.IsDevelopment() ? "http://localhost:5173" : "/";
+    return Results.Challenge(
+        new AuthenticationProperties { RedirectUri = redirectUri },
+        new[] { GoogleDefaults.AuthenticationScheme });
+});
 
 app.MapPost("/api/auth/logout", async (HttpContext ctx) =>
 {
@@ -491,10 +522,15 @@ app.MapPost("/api/images/{kind}", async (string kind, HttpRequest request, HttpC
         return Results.BadRequest("No file provided.");
 
     string extension;
+
     if (kind == "sheets")
     {
+        if (!user.IsPaid)
+            return Results.BadRequest("Uploading character sheet PDFs is a paid feature.");
+
         if (file.ContentType != "application/pdf")
             return Results.BadRequest("Character sheets ,ust be Pdf's");
+
         extension = ".pdf";
     }
     else
@@ -804,9 +840,13 @@ app.MapPost("/api/campaigns", async (CreateCampaignRequest request, HttpContext 
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
 
-    // Only paid users can host campaigns
     if (!user.IsPaid)
-        return Results.BadRequest("Hosting a campaign requires a paid account.");
+    {
+        var hostedCount = await db.CampaignMemberships
+            .CountAsync(m => m.UserId == user.Id && m.Role == CampaignRole.Gm);
+        if (hostedCount >= 1)
+            return Results.BadRequest("Free accounts can host one campaign. Upgrade to host more.");
+    }
 
     if (string.IsNullOrWhiteSpace(request.Name))
         return Results.BadRequest("Campaign name is required.");

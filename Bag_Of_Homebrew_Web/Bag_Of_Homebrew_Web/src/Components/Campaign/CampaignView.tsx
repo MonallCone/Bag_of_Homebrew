@@ -28,12 +28,13 @@ type Tab = { kind: 'vault' } | { kind: 'player'; userId: string };
 interface Props {
   campaignId: string;
   currentUserId: string;
+  isPaid: boolean;
 }
 
 interface IncomingTransfer { transferId: string; fromUserId: string; item: ApiItem; }
 interface OutgoingTransfer { transferId: string; itemId: string; toUserId: string; }
 
-export function CampaignView({ campaignId, currentUserId }: Props) {
+export function CampaignView({ campaignId, currentUserId, isPaid }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [campaign, setCampaign] = useState<CampaignInfo | null>(null);
   const [incoming, setIncoming] = useState<IncomingTransfer[]>([]);
@@ -136,6 +137,7 @@ export function CampaignView({ campaignId, currentUserId }: Props) {
                     onTransfersChanged: loadTransfers,
                   }}
                   readOnly={!isYou}
+                  isPaid={isPaid}
                 />
                 );
             })()}

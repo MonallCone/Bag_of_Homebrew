@@ -32,6 +32,7 @@ interface Props {
   onClose: () => void;
   onDeleteCampaign: (id: string, name: string) => void;
   onLeaveCampaign: (id: string, name: string) => void;
+  onLogout: () => void;
 }
 
 export function NavPanel({
@@ -50,7 +51,8 @@ export function NavPanel({
   onDeleteCharacter,
   onClose,
   onLeaveCampaign,
-  onDeleteCampaign
+  onDeleteCampaign,
+  onLogout
 }: Props) {
   const [charMenu, setCharMenu] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
   const [campMenu, setCampMenu] = useState<{ id: string; name: string; isGm: boolean; x: number; y: number } | null>(null);
@@ -133,6 +135,15 @@ export function NavPanel({
               + New Campaign
             </button>
           )}
+        </div>
+
+        <div className='nav-panel__bottom'>
+            <button className="nav-panel__settings">
+                Settings
+            </button>
+            <button className="nav-panel__logout" onClick={onLogout}>
+                Sign out
+            </button>
         </div>
       </div>
 

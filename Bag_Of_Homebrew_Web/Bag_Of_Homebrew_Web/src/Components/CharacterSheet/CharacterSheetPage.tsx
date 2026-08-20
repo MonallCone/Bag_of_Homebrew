@@ -41,10 +41,11 @@ interface Props {
   characterId: string;
   vaultId: string;          
   campaign?: CampaignContext;    
-  readOnly?: boolean;          
+  readOnly?: boolean;       
+  isPaid: boolean   
 }
 
-export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = false }: Props) {
+export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = false, isPaid}: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
@@ -375,7 +376,8 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="character-sheet-page">
-      <PdfDropzone sheetUrl={sheetUrl} onSheetChange={handleSheetChange} />
+
+      {isPaid ? (<PdfDropzone sheetUrl={sheetUrl} onSheetChange={handleSheetChange} />) : (<div className="pdf-locked">Character sheet PDFs are a paid feature.</div>)}
 
       <div className="character-sheet-page__center">
         <h1 className="character-sheet-page__name">{characterName}</h1>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect, useRef } from 'react';
 import type { Item, SlotType } from '../../Types/model';
 import { validSlotsFor, SLOT_LABELS } from './ItemSlotRules';
 
@@ -39,6 +39,26 @@ export function ItemContextMenu({
 }: Props) {
   const [charSubmenuOpen, setCharSubmenuOpen] = useState(false);
   const [giftSubmenuOpen, setGiftSubmenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({top: y, left: x});
+
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 12;
+    let left = x;
+    let top = y;
+    // If it overflows right, shift left
+    if (x + rect.width > window.innerWidth - margin) {
+      left = window.innerWidth - rect.width - margin;
+    }
+    // If it overflows bottom, shift up
+    if (y + rect.height > window.innerHeight - margin) {
+      top = window.innerHeight - rect.height - margin;
+    }
+    setPos({ top: Math.max(margin, top), left: Math.max(margin, left) });
+  }, [x, y]);
 
   // ─────────────────────────────────────────────
   // Early returns: pending gift states
@@ -107,7 +127,7 @@ export function ItemContextMenu({
         onClick={onClose}
         onContextMenu={(e) => { e.preventDefault(); onClose(); }}
       />
-      <div className="context-menu" style={{ top: y, left: x }}>
+      <div ref={menuRef} className="context-menu" style={{ top: pos.top, left: pos.left}}>
         {/* Equip options — character mode only */}
         {showEquip &&
           equipSlots.map((slot) => {
