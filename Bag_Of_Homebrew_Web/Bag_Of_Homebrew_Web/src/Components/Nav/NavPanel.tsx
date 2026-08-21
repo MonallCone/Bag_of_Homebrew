@@ -33,6 +33,10 @@ interface Props {
   onDeleteCampaign: (id: string, name: string) => void;
   onLeaveCampaign: (id: string, name: string) => void;
   onLogout: () => void;
+  onRenameVault: () => void;
+  onRenameCampaign: (id: string, name: string) => void;
+  onOpenSettings: () => void;
+  vaultName: string;
 }
 
 export function NavPanel({
@@ -52,10 +56,15 @@ export function NavPanel({
   onClose,
   onLeaveCampaign,
   onDeleteCampaign,
-  onLogout
+  onRenameVault,
+  onRenameCampaign,
+  onLogout,
+  onOpenSettings,
+  vaultName
 }: Props) {
   const [charMenu, setCharMenu] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
   const [campMenu, setCampMenu] = useState<{ id: string; name: string; isGm: boolean; x: number; y: number } | null>(null);
+  const [vaultMenu, setVaultMenu] = useState<{ x: number; y: number } | null>(null);
 
   return (
     <>
@@ -68,9 +77,13 @@ export function NavPanel({
           <span className="nav-panel__label">Storage</span>
           <button
             className={`nav-panel__item ${currentView=== '/vault' ? 'nav-panel__item--active' : ''}`}
-            onClick={onSelectVault}
+            onClick={onSelectVault}  
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setVaultMenu({ x: e.clientX, y: e.clientY });
+            }}
           >
-            🐉 Dragon's Vault
+            🐉 {vaultName}
           </button>
         </div>
 
@@ -181,6 +194,17 @@ export function NavPanel({
         </>
       )}
 
+      {vaultMenu && (
+        <>
+          <div className="context-menu-backdrop context-menu-backdrop--nav" onClick={() => setVaultMenu(null)} onContextMenu={(e) => { e.preventDefault(); setVaultMenu(null); }} />
+          <div className="context-menu context-menu--nav" style={{ top: vaultMenu.y, left: vaultMenu.x }}>
+            <button className="context-menu__item" onClick={() => { onRenameVault(); setVaultMenu(null); }}>
+              Rename
+            </button>
+          </div>
+        </>
+      )}
+
       {campMenu && (
       <>
         <div
@@ -189,6 +213,17 @@ export function NavPanel({
           onContextMenu={(e) => { e.preventDefault(); setCampMenu(null); }}
         />
         <div className="context-menu context-menu--nav" style={{ top: campMenu.y, left: campMenu.x }}>
+            {campMenu.isGm && (
+            <>
+              <button
+                className="context-menu__item"
+                onClick={() => { onRenameCampaign(campMenu.id, campMenu.name); setCampMenu(null); }}
+              >
+                Rename Campaign
+              </button>
+              <div className="context-menu__divider" />
+            </>
+          )}
           {campMenu.isGm ? (
             <button
               className="context-menu__item context-menu__item--danger"

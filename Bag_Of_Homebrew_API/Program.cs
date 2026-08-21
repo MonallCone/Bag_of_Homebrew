@@ -83,33 +83,6 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ⚠️ DEV ONLY — DELETE BEFORE DEPLOYING. Logs in as any fake user by name.
-if (app.Environment.IsDevelopment())
-{
-    app.MapGet("/api/dev/login-as/{name}", async (string name, HttpContext ctx, AppDbContext db) =>
-    {
-        var fakeGoogleId = $"dev-{name}";
-        var user = await db.Users.FirstOrDefaultAsync(u => u.GoogleId == fakeGoogleId);
-        if (user is null)
-        {
-            user = new User { GoogleId = fakeGoogleId, Email = $"{name}@dev.local", DisplayName = name };
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-        }
-
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, fakeGoogleId),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.DisplayName)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-
-        return Results.Redirect("http://localhost:5173");
-    });
-}
-
 app.MapGet("/api/auth/login", (IWebHostEnvironment env) =>
 {
     var redirectUri = env.IsDevelopment() ? "http://localhost:5173" : "/";
@@ -183,7 +156,8 @@ app.MapGet("/api/auth/me", async (HttpContext ctx, AppDbContext db) =>
         current.PdfSheetUrl,
         current.ManualAc,
         VaultId = vault.Id,
-        user.IsPaid
+        user.IsPaid,
+        vaultName = vault?.Name ?? "Vault",
     });
 });
 
@@ -818,7 +792,7 @@ app.MapDelete("/api/characters/{characterId:guid}", async (Guid characterId, Htt
 
 // RENAME character
 app.MapPut("/api/characters/{characterId:guid}/name", async (
-    Guid characterId, RenameCharacterRequest request, HttpContext ctx, AppDbContext db) =>
+    Guid characterId, RenameRequest request, HttpContext ctx, AppDbContext db) =>
 {
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
@@ -1475,6 +1449,42 @@ app.MapGet("/api/me/item-usage", async (HttpContext ctx, AppDbContext db) =>
     return Results.Ok(new { count, limit = user.IsPaid ? (int?)null : 50, isPaid = user.IsPaid });
 });
 
+app.MapPut("/api/vaults/{vaultId:guid}/name", async (
+    Guid vaultId, RenameRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest("Name is required.");
+
+    // Only the owner can rename their personal vault
+    var vault = await db.Vaults.FirstOrDefaultAsync(v => v.Id == vaultId && v.UserId == user.Id);
+    if (vault is null) return Results.NotFound();
+
+    vault.Name = request.Name.Trim();
+    await db.SaveChangesAsync();
+    return Results.Ok(new { vault.Id, vault.Name });
+});
+
+app.MapPut("/api/campaigns/{campaignId:guid}/name", async (
+    Guid campaignId, RenameRequest request, HttpContext ctx, AppDbContext db) =>
+{
+    var user = await GetCurrentUser(ctx, db);
+    if (user is null) return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest("Name is required.");
+
+    var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId);
+    if (campaign is null) return Results.NotFound();
+    if (campaign.GmUserId != user.Id) return Results.Forbid();   // only the GM renames
+
+    campaign.Name = request.Name.Trim();
+    await db.SaveChangesAsync();
+    return Results.Ok(new { campaign.Id, campaign.Name });
+});
+
 app.MapFallbackToFile("index.html");
 app.Run();
 
@@ -1614,7 +1624,7 @@ record SetAcRequest(string? ManualAc);
 record ReturnToVaultRequest(Guid VaultId);
 record SendToCharacterRequest(Guid CharacterId);
 record CreateCharacterRequest(string Name);
-record RenameCharacterRequest(string Name);
+record RenameRequest(string Name);
 record CreateCampaignRequest(string Name);
 record JoinCampaignRequest(string InviteCode, Guid CharacterId);
 record ReturnToCampaignVaultRequest(Guid ItemId);

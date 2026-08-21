@@ -6,7 +6,7 @@ import { BurgerMenu } from './Components/Nav/BurgerMenu';
 import './App.css';
 import { NavPanel } from './Components/Nav/NavPanel';
 import { NewCharacterModal } from './Components/Nav/NewCharacterModal';
-import { RenameCharacterModal } from './Components/Nav/RenameCharacterModal';
+import { RenameModal } from './Components/Nav/RenameModal';
 import { DeleteCharacterModal } from './Components/Nav/DeleteCharacterModal';
 import { CampaignView } from './Components/Campaign/CampaignView';
 import { NewCampaignModal } from './Components/Campaign/NewCampaignModal';
@@ -63,6 +63,9 @@ function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
+  const [renameCampaignTarget, setRenameCampaignTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameVaultOpen, setRenameVaultOpen] = useState(false);
+  const [vaultName, setVaultName] = useState('Dragon\u2019s Vault');
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
@@ -71,6 +74,7 @@ function AppShell() {
         if (!data) { setSession(null); return; }
         setSession({ displayName: data.displayName, vaultId: data.vaultId, userId: data.id });
         setIsPaid(data.isPaid ?? false);
+        setVaultName(data.vaultName ?? 'Dragon\u2019s Vault'); 
       })
       .catch(() => setSession(null));
   }, []);
@@ -180,6 +184,26 @@ function AppShell() {
     navigate('/');
   };
 
+  const renameCampaign = async (id: string, name: string) => {
+    const res = await fetch(`${API_BASE}/api/campaigns/${id}/name`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error('Rename failed');
+    loadCampaigns();
+  };
+
+  const renameVault = async (name: string) => {
+    const res = await fetch(`${API_BASE}/api/vaults/${session.vaultId}/name`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error('Rename failed');
+    setVaultName(name);
+  };
+
   return (
     <>
       <BurgerMenu onClick={() => setMenuOpen(true)} />
@@ -189,10 +213,12 @@ function AppShell() {
             characters={characters}
             campaigns={campaigns}
             vaultId={session.vaultId}
+            vaultName={vaultName}
             currentView={location.pathname}
             canAddCharacter={canAddCharacter}
             canCreateCampaign={true}
             onSelectVault={() => { navigate('/vault'); setMenuOpen(false); }}
+            onRenameVault={() => { setMenuOpen(false); setRenameVaultOpen(true); }}
             onSelectCharacter={(id) => { navigate(`/character/${id}`);  setMenuOpen(false); }}
             onSelectCampaign={(id) => { navigate(`/campaign/${id}`);   setMenuOpen(false); }}
             onAddCharacter={() => { setMenuOpen(false); setShowNewCharacter(true); }}
@@ -203,7 +229,9 @@ function AppShell() {
             onClose={() => setMenuOpen(false)}
             onDeleteCampaign={(id, name) => { setMenuOpen(false); setDeleteCampaignTarget({ id, name }); }}
             onLeaveCampaign={(id, name) => { setMenuOpen(false); setLeaveCampaignTarget({ id, name }); }}
+            onRenameCampaign={(id, name) => { setMenuOpen(false); setRenameCampaignTarget({ id, name }); }}
             onLogout={() => {setMenuOpen(false); logout();}}
+            onOpenSettings={() => { setMenuOpen(false); navigate('/settings'); }}
           />
       )}
 
@@ -211,7 +239,7 @@ function AppShell() {
         <Route path="/" element={<Navigate to="/vault" replace />} />
         <Route
           path="/vault"
-          element={<VaultView vaultId={session.vaultId} vaultName="Dragon's Vault" characters={characters} />}
+          element={<VaultView vaultId={session.vaultId} vaultName={vaultName} characters={characters} />}
         />
         <Route path="/character/:characterId" element={<CharacterRoute vaultId={session.vaultId} isPaid={isPaid} />} />
         <Route path="/campaign/:campaignId" element={<CampaignRoute currentUserId={session.userId} isPaid={isPaid}/>} />
@@ -234,13 +262,35 @@ function AppShell() {
         <JoinCampaignModal characters={characters} onJoin={joinCampaign} onClose={() => setShowJoinCampaign(false)} />
       )}
 
+      {/* Character rename*/}
       {renameTarget && (
-      <RenameCharacterModal
-        currentName={renameTarget.name}
-        onRename={(name) => renameCharacter(renameTarget.id, name)}
-        onClose={() => setRenameTarget(null)}
-      />
-    )}
+        <RenameModal
+          title="Rename Character"
+          currentName={renameTarget.name}
+          onRename={(name) => renameCharacter(renameTarget.id, name)}
+          onClose={() => setRenameTarget(null)}
+        />
+      )}
+
+      {/* Campaign rename */}
+      {renameCampaignTarget && (
+        <RenameModal
+          title="Rename Campaign"
+          currentName={renameCampaignTarget.name}
+          onRename={(name) => renameCampaign(renameCampaignTarget.id, name)}
+          onClose={() => setRenameCampaignTarget(null)}
+        />
+      )}
+
+      {/* Vault rename */}
+      {renameVaultOpen && (
+        <RenameModal
+          title="Rename Vault"
+          currentName={vaultName}
+          onRename={renameVault}
+          onClose={() => setRenameVaultOpen(false)}
+        />
+      )}
 
     {deleteTarget && (
       <DeleteCharacterModal

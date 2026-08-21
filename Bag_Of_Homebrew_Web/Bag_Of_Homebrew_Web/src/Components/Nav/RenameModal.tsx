@@ -2,11 +2,12 @@ import { useState } from 'react';
 
 interface Props {
   currentName: string;
+  title?: string;
   onRename: (name: string) => Promise<void>;
   onClose: () => void;
 }
 
-export function RenameCharacterModal({ currentName, onRename, onClose }: Props) {
+export function RenameModal({ currentName, title="Rename", onRename, onClose }: Props) {
   const [name, setName] = useState(currentName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function RenameCharacterModal({ currentName, onRename, onClose }: Props) 
       await onRename(name.trim());
       onClose();
     } catch {
-      setError('Could not rename the character.');
+      setError('Could not change Name.');
       setSaving(false);
     }
   };
@@ -30,7 +31,7 @@ export function RenameCharacterModal({ currentName, onRename, onClose }: Props) 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal--confirm" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal__title">Rename Character</h2>
+        <h2 className="modal__title">{title}</h2>
         <label className="modal__field">
           Name
           <input
