@@ -231,7 +231,7 @@ function AppShell() {
             onLeaveCampaign={(id, name) => { setMenuOpen(false); setLeaveCampaignTarget({ id, name }); }}
             onRenameCampaign={(id, name) => { setMenuOpen(false); setRenameCampaignTarget({ id, name }); }}
             onLogout={() => {setMenuOpen(false); logout();}}
-            onOpenSettings={() => { setMenuOpen(false); navigate('/settings'); }}
+            //onOpenSettings={() => { setMenuOpen(false); navigate('/settings'); }}
           />
       )}
 

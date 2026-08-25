@@ -35,7 +35,7 @@ interface Props {
   onLogout: () => void;
   onRenameVault: () => void;
   onRenameCampaign: (id: string, name: string) => void;
-  onOpenSettings: () => void;
+  //onOpenSettings: () => void;
   vaultName: string;
 }
 
@@ -59,7 +59,7 @@ export function NavPanel({
   onRenameVault,
   onRenameCampaign,
   onLogout,
-  onOpenSettings,
+  //onOpenSettings,
   vaultName
 }: Props) {
   const [charMenu, setCharMenu] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
