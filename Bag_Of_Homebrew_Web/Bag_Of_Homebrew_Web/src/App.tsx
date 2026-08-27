@@ -16,6 +16,7 @@ import { ConfirmLeaveModal } from './Components/Nav/ConfirmLeaveModal';
 import { ToastProvider, useToast} from './Components/Toast/ToastProvider';
 import { API_BASE } from './config';
 import { LandingPage } from './Components/Marketing/LandingPage';
+import { PrivacyPolicy } from './Components/Marketing/PrivacyPolicy';
 
 interface Session {
   displayName: string;
@@ -246,6 +247,7 @@ function AppShell() {
         <Route path="/campaign/:campaignId/vault" element={<CampaignRoute currentUserId={session.userId} isPaid={isPaid}/>} />
         <Route path="/campaign/:campaignId/player/:userId" element={<CampaignRoute currentUserId={session.userId} isPaid={isPaid}/>} />
         <Route path="*" element={<Navigate to="/vault" replace />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
       </Routes>
 
       {showNewCharacter && (
