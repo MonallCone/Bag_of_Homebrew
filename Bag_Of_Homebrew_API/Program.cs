@@ -1510,6 +1510,7 @@ static bool IsValidSlotForItem(Item item, SlotType slot)
 {
     var weaponSlots = new[] { SlotType.WeaponSet1Main, SlotType.WeaponSet1Off, SlotType.WeaponSet2Main, SlotType.WeaponSet2Off };
     var accessorySlots = new[] { SlotType.Accessory1, SlotType.Accessory2, SlotType.Accessory3, SlotType.Accessory4, SlotType.Accessory5, SlotType.Accessory6 };
+    var pouchSlots = new[] {SlotType.Pouch1, SlotType.Pouch2, SlotType.Pouch3, SlotType.Pouch4 };
 
     switch (item.Category)
     {
@@ -1541,8 +1542,14 @@ static bool IsValidSlotForItem(Item item, SlotType slot)
                 };
             }
 
+        case ItemCategory.Consumable:
+        case ItemCategory.Misc:
+            {
+                return pouchSlots.Contains(slot);
+            };
+
         default:
-            return false; // Consumable and Misc aren't equippable
+            return false;
     }
 }
 

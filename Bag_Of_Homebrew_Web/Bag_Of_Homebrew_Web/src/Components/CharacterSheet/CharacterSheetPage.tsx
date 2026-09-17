@@ -17,6 +17,7 @@ import type { CurrencyAmounts } from '../Inventory/coins';
 import { useToast } from '../Toast/ToastProvider';
 import { useItemUsage } from '../../api/itemUsage';
 import { API_BASE } from '../../config';
+import { PouchColumn } from './PouchColumn';
 
 interface ApiSlot {
   slotType: SlotType;
@@ -26,6 +27,7 @@ interface ApiSlot {
 const ARMOUR_ORDER: SlotType[] = ['Head', 'Chest', 'Gloves', 'Boots'];
 const ACCESSORY_ORDER: SlotType[] = ['Accessory1', 'Accessory2', 'Accessory3', 'Accessory4', 'Accessory5', 'Accessory6'];
 const WEAPON_ORDER: SlotType[] = ['WeaponSet1Main', 'WeaponSet1Off', 'WeaponSet2Main', 'WeaponSet2Off'];
+const POUCH_ORDER: SlotType[] = ['Pouch1', 'Pouch2', 'Pouch3', 'Pouch4'];
 
 interface CampaignContext {
   campaignId: string;
@@ -389,6 +391,7 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
             onPortraitChange={handlePortraitChange}
           />
           <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
+          <PouchColumn slots={bySlotOrder(POUCH_ORDER)} onUnequip={unequipSlot} onAdjustQuantity={adjustQuantity} onSelectItem={setSelectedItem} readOnly={true} />
         </div>
         <HealthHeart currentHp={currentHp} maxHp={maxHp} tempHp={tempHp} readOnly={readOnly} onChange={handleHealthChange}/>
         <AcShield slots={slots} manualAc={manualAc} onManualAcChange={handleAcChange} />

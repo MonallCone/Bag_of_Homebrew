@@ -1773,3 +1773,124 @@ body {
   opacity: 1;
   visibility: visible;
 }
+
+.pouch-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pouch-column__title {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: var(--muted, #8C897F);
+  text-align: center;
+  margin: 0 0 4px 0;
+}
+
+.pouch-slot {
+  position: relative;
+  border: 1px dashed var(--border, #37373D);
+  border-radius: 8px;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  gap: 4px;
+  transition: border-color 0.15s;
+}
+
+.pouch-slot--over {
+  border-color: var(--amber, #C4761F);
+  border-style: solid;
+  background: rgba(196, 118, 31, 0.08);
+}
+
+.pouch-slot--filled {
+  border-style: solid;
+}
+
+.pouch-slot__content {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  width: 100%;
+}
+
+.pouch-slot__img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.pouch-slot__name {
+  font-size: 11px;
+  text-align: center;
+  color: var(--text, #E8E4DB);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.pouch-slot__empty {
+  font-size: 12px;
+  color: var(--muted, #8C897F);
+}
+
+.pouch-slot__qty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pouch-slot__qty-btn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border, #37373D);
+  background: transparent;
+  color: var(--text, #E8E4DB);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 13px;
+}
+
+.pouch-slot__qty-btn:hover:not(:disabled) {
+  border-color: var(--amber, #C4761F);
+}
+
+.pouch-slot__qty-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pouch-slot__qty-value {
+  font-size: 13px;
+  min-width: 16px;
+  text-align: center;
+  color: var(--text, #E8E4DB);
+}
+
+.pouch-slot__unequip {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: none;
+  border: none;
+  color: var(--muted, #8C897F);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+}
+
+.pouch-slot__unequip:hover {
+  color: #B03A3A;
+}

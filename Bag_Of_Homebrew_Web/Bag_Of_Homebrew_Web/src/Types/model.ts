@@ -20,7 +20,8 @@ export type SlotType =
   | 'Head' | 'Chest' | 'Gloves' | 'Boots'
   | 'Accessory1' | 'Accessory2' | 'Accessory3' | 'Accessory4' | 'Accessory5' | 'Accessory6'
   | 'WeaponSet1Main' | 'WeaponSet1Off'
-  | 'WeaponSet2Main' | 'WeaponSet2Off';
+  | 'WeaponSet2Main' | 'WeaponSet2Off'
+  | 'Pouch1' | 'Pouch2' | 'Pouch3' | 'Pouch4';
 
 export interface EquipmentSlotData {
   slotType: SlotType;
