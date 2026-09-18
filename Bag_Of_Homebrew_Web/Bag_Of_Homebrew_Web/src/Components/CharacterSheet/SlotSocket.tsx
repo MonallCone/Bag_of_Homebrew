@@ -12,9 +12,10 @@ interface Props {
   draggedItem: Item | null;
   onItemClick: (item: Item) => void;
   isLinkedOffHand?: boolean;
+  onAdjustQuantity?: (itemId: string, newQuantity: number) => void;
 }
 
-export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, isLinkedOffHand }: Props) {
+export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, isLinkedOffHand, onAdjustQuantity}: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: slot.slotType });
 
   const isValidTarget = draggedItem !== null && validSlotsFor(draggedItem).includes(slot.slotType);
@@ -27,7 +28,7 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, i
     isValidTarget ? 'slot-socket--valid-target' : '',
     isValidTarget && isOver ? 'slot-socket--over' : '',
   ].filter(Boolean).join(' ');
-
+  console.log('pouch item', slot.item?.name, 'qty:', slot.item?.quantity, 'id:', slot.item?.id);
   return (
     <div
       ref={setNodeRef}
@@ -53,6 +54,27 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, i
         <span className="slot-socket__label">{label}</span>
       )}
       {slot.item?.isPlotFlagged && !isLinkedOffHand && <span className="plot-dot" />}
+      
+      {slot.item && onAdjustQuantity && slot.item.category === 'Consumable' && (
+        <div className="slot-socket__qty" onPointerDown={(e) => e.stopPropagation()}>
+          <button
+            className="slot-socket__qty-btn"
+            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(slot.item!.id, -1); }}
+            disabled={(slot.item.quantity ?? 0) <= 0}
+            aria-label="Decrease quantity"
+          >
+            −
+          </button>
+          <span className="slot-socket__qty-value">{slot.item.quantity ?? 0}</span>
+          <button
+            className="slot-socket__qty-btn"
+            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(slot.item!.id, 1); }}
+            aria-label="Increase quantity"
+          >
+            +
+          </button>
+        </div>
+      )}
     </div>
   );
 }

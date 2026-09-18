@@ -432,8 +432,13 @@ app.MapPost("/api/characters/{characterId:guid}/equip", async (
         .ToListAsync();
     foreach (var s in existing) s.ItemId = null;
 
-    // Fill the main slot
-    var targetSlot = await db.EquipmentSlots.FirstAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
+    // for any previous characters created before pouch
+    var targetSlot = await db.EquipmentSlots.FirstOrDefaultAsync(s => s.CharacterId == characterId && s.SlotType == slotType);
+    if (targetSlot is null)
+    {
+        targetSlot = new EquipmentSlot { CharacterId = characterId, SlotType = slotType, ItemId = null };
+        db.EquipmentSlots.Add(targetSlot);
+    }
     targetSlot.ItemId = item.Id;
 
     // Fill the off-hand too, if two-handed

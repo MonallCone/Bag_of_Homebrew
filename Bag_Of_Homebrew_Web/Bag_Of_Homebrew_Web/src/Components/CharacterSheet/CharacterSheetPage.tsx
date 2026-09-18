@@ -204,7 +204,10 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ delta }),
     });
-    if (res.ok) await loadItems();
+    if (res.ok) {
+      await loadItems();
+      await loadSlots();
+    }
   };
 
   const handleSheetChange = async (url: string) => {
@@ -391,7 +394,7 @@ useEffect(() => { loadEverything(); }, [loadEverything]);
             onPortraitChange={handlePortraitChange}
           />
           <AccessoryColumn slots={bySlotOrder(ACCESSORY_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} />
-          <PouchColumn slots={bySlotOrder(POUCH_ORDER)} onUnequip={unequipSlot} onAdjustQuantity={adjustQuantity} onSelectItem={setSelectedItem} readOnly={true} />
+          <PouchColumn slots={bySlotOrder(POUCH_ORDER)} onUnequip={unequipSlot} draggedItem={draggedItem} onItemClick={setSelectedItem} onAdjustQuantity={adjustQuantity}/>
         </div>
         <HealthHeart currentHp={currentHp} maxHp={maxHp} tempHp={tempHp} readOnly={readOnly} onChange={handleHealthChange}/>
         <AcShield slots={slots} manualAc={manualAc} onManualAcChange={handleAcChange} />

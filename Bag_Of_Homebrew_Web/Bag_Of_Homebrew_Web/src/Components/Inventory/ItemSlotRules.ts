@@ -2,6 +2,7 @@ import type { Item, SlotType } from '../../Types/model';
 
 const WEAPON_SLOTS: SlotType[] = ['WeaponSet1Main', 'WeaponSet1Off', 'WeaponSet2Main', 'WeaponSet2Off'];
 const ACCESSORY_SLOTS: SlotType[] = ['Accessory1', 'Accessory2', 'Accessory3', 'Accessory4', 'Accessory5', 'Accessory6'];
+const POUCH_SLOTS: SlotType[] = ['Pouch1', 'Pouch2','Pouch3','Pouch4',]; 
 
 export function validSlotsFor(item: Item): SlotType[] {
   switch (item.category) {
@@ -20,6 +21,9 @@ export function validSlotsFor(item: Item): SlotType[] {
         default: return [];
       }
     }
+    case 'Consumable':
+    case 'Misc':
+        return POUCH_SLOTS;
     default:
       return []; // Consumable and Misc aren't equippable
   }
@@ -31,4 +35,5 @@ export const SLOT_LABELS: Record<SlotType, string> = {
   Accessory4: 'Accessory 4', Accessory5: 'Accessory 5', Accessory6: 'Accessory 6',
   WeaponSet1Main: 'Set 1: Main Hand', WeaponSet1Off: 'Set 1: Off Hand',
   WeaponSet2Main: 'Set 2: Main Hand', WeaponSet2Off: 'Set 2: Off Hand',
+  Pouch1: 'Pouch 1', Pouch2: 'Pouch 2', Pouch3: 'Pouch 3', Pouch4: 'Pouch 4', 
 };

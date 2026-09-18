@@ -266,6 +266,8 @@ body {
   border-radius: 4px;
   padding: 14px 16px;
   font-family: 'Spectral', serif;
+  max-height: 45vh;   /* cap its height to the viewport */
+  overflow-y: auto;                  /* long content scrolls inside the card */
 }
 
 .item-detail-panel__close {
@@ -320,55 +322,83 @@ body {
 }
 
 .item-detail-panel__body {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  display: block;        /* was flex — use block so we can float the image */
 }
 
 .item-detail-panel__image {
-  width: 84px;
-  height: 84px;
-  object-fit: cover;
-  border: 1px solid #7A2E12;
-  border-radius: 4px;
-  flex-shrink: 0;
+  float: right;          /* image sits top-right, text wraps beside/below it */
+  width: 200px;          /* bigger than the old 84px — like the reference */
+  height: auto;
+  margin: 0 0 12px 20px; /* space below and to the left of the image */
+  border: none;          /* reference has no border — remove if you want that clean look */
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.item-detail-panel__body::after {
+  content: '';
+  display: table;
+  clear: both;
 }
 
 .item-detail-panel__description {
-  font-size: 14px;
-  margin: 0;
-  flex: 1;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 16px;         /* Crimson Pro runs small — 16px keeps it comfortable */
+  line-height: 1.5;
+  text-align: left;
+  color: #241E14;
 }
 
 .item-detail-panel__description p {
-  font-style: italic;   /* keeps the flavor-text feel for plain paragraphs */
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
 }
 
 .item-detail-panel__description p:last-child {
   margin-bottom: 0;
 }
 
-.item-detail-panel__description strong {
-  font-weight: 700;
-  font-style: normal;   /* bold shouldn't also be italic unless *** used */
+/* Bullet lists — tidy, left-aligned */
+.item-detail-panel__description ul {
+  margin: 6px 0 8px 0;
+  padding-left: 22px;
+  list-style-position: outside;
+}
+
+.item-detail-panel__description ol {
+  margin: 6px 0 8px 0;
+  padding-left: 22px;
+  list-style-position: outside;
+}
+
+.item-detail-panel__description li {
+  margin-bottom: 4px;
+  padding-left: 4px;
+  line-height: 1.45;
+}
+
+.item-detail-panel__description h1,
+.item-detail-panel__description h2,
+.item-detail-panel__description h3 {
+  font-family: 'Cinzel', serif;
+  margin: 12px 0 6px 0;
+  color: #7A2E12;
 }
 
 .item-detail-panel__description em {
   font-style: italic;
+  /* remove any font-weight here */
 }
 
-.item-detail-panel__description ul {
-  margin: 4px 0;
-  padding-left: 4px;
-  list-style-position: inside;
+.item-detail-panel__description strong {
+  font-weight: 700;
+  /* remove any font-style here */
 }
 
-.item-detail-panel__description li {
-  font-style: normal;
-  margin-bottom: 2px;
-  padding-left: 2px;
+/* explicitly force nested combos to be BOTH */
+.item-detail-panel__description em strong,
+.item-detail-panel__description strong em {
+  font-weight: 700 !important;
+  font-style: italic !important;
 }
 
 .modal__hint {
@@ -1774,84 +1804,20 @@ body {
   visibility: visible;
 }
 
-.pouch-column {
+.slot-socket__qty {
+  position: absolute;
+  bottom: -28px;             /* sits just below the socket */
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pouch-column__title {
-  font-family: 'Cinzel', serif;
-  font-size: 14px;
-  color: var(--muted, #8C897F);
-  text-align: center;
-  margin: 0 0 4px 0;
-}
-
-.pouch-slot {
-  position: relative;
-  border: 1px dashed var(--border, #37373D);
-  border-radius: 8px;
-  min-height: 76px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  gap: 4px;
-  transition: border-color 0.15s;
-}
-
-.pouch-slot--over {
-  border-color: var(--amber, #C4761F);
-  border-style: solid;
-  background: rgba(196, 118, 31, 0.08);
-}
-
-.pouch-slot--filled {
-  border-style: solid;
-}
-
-.pouch-slot__content {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 0;
-  width: 100%;
+  background: var(--panel, #232327);
+  padding: 2px 4px;
+  border-radius: 6px;
+  z-index: 2;
 }
-
-.pouch-slot__img {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.pouch-slot__name {
-  font-size: 11px;
-  text-align: center;
-  color: var(--text, #E8E4DB);
-  line-height: 1.2;
-  word-break: break-word;
-}
-
-.pouch-slot__empty {
-  font-size: 12px;
-  color: var(--muted, #8C897F);
-}
-
-.pouch-slot__qty {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-.pouch-slot__qty-btn {
+.slot-socket__qty-btn {
   width: 20px;
   height: 20px;
   border: 1px solid var(--border, #37373D);
@@ -1862,35 +1828,15 @@ body {
   line-height: 1;
   font-size: 13px;
 }
+.slot-socket__qty-btn:hover:not(:disabled) { border-color: var(--amber, #C4761F); }
+.slot-socket__qty-btn:disabled { opacity: 0.4; cursor: default; }
+.slot-socket__qty-value { font-size: 13px; min-width: 16px; text-align: center; }
 
-.pouch-slot__qty-btn:hover:not(:disabled) {
-  border-color: var(--amber, #C4761F);
-}
-
-.pouch-slot__qty-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.pouch-slot__qty-value {
-  font-size: 13px;
-  min-width: 16px;
-  text-align: center;
-  color: var(--text, #E8E4DB);
-}
-
-.pouch-slot__unequip {
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  background: none;
-  border: none;
-  color: var(--muted, #8C897F);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px;
-}
-
-.pouch-slot__unequip:hover {
-  color: #B03A3A;
+.pouch-column {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  margin-top: 120px;    /* push it DOWN */
+  margin-left: 20px;    /* push it RIGHT, away from accessories */
+  width: 90px;          /* match the accessory socket width */
 }
