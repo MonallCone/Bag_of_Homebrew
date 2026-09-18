@@ -458,6 +458,19 @@ body {
   gap: 12px;
 }
 
+.create-modal {
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 8px;
+  padding: 20px;
+  width: 800px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .modal__title {
   font-family: 'Cinzel', serif;
   font-size: 20px;
@@ -499,6 +512,7 @@ body {
   font-size: 13px;
   color: #E8E4DB;
   cursor: pointer;
+  accent-color: #C4761F;
 }
 
 .modal__error {
@@ -1016,6 +1030,7 @@ body {
 .modal__radio-group {
   display: flex;
   gap: 14px;
+  justify-content: center;
 }
 
 .modal__radio {
@@ -1025,6 +1040,7 @@ body {
   font-size: 13px;
   color: #E8E4DB;
   cursor: pointer;
+  accent-color: #C4761F;
 }
 
 .weapon-summary {

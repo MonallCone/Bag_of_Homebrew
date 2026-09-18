@@ -91,7 +91,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="create-modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="modal__title">Create Item</h2>
 
         <label className="modal__field">
@@ -196,7 +196,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
           <textarea
             value={homebrewDescription}
             onChange={(e) => setHomebrewDescription(e.target.value)}
-            rows={3}
+            rows={7}
             placeholder="Freeform abilities, lore, or notes"
           />
           <span className="modal__hint">Formatting: **bold**, *italic*, ***both***, - bullet</span>
