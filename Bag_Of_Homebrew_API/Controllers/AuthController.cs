@@ -59,24 +59,6 @@ public class AuthController : ControllerBase
             await _db.SaveChangesAsync(); // save so user.Id exists for the FK below
         }
 
-        if (user.Characters.Count == 0)
-        {
-            var character = new Character { UserId = user.Id, Name = "New Character" };
-            _db.Characters.Add(character);
-
-            foreach (var slotType in Enum.GetValues<SlotType>())
-            {
-                _db.EquipmentSlots.Add(new EquipmentSlot
-                {
-                    CharacterId = character.Id,
-                    SlotType = slotType
-                });
-            }
-
-            await _db.SaveChangesAsync();
-            user.Characters.Add(character);
-        }
-
         // Ensure the user has a vault (one per user)
         var vault = await _db.Vaults.FirstOrDefaultAsync(v => v.UserId == user.Id);
         if (vault is null)
@@ -86,17 +68,17 @@ public class AuthController : ControllerBase
             await _db.SaveChangesAsync();
         }
 
-        var current = user.Characters.First();
+        var current = user.Characters.FirstOrDefault();
         return Ok(new
         {
             user.Id,
             user.Email,
             user.DisplayName,
-            CharacterId = current.Id,
-            CharacterName = current.Name,
-            current.PortraitUrl,
-            current.PdfSheetUrl,
-            current.ManualAc,
+            CharacterId = current?.Id,
+            CharacterName = current?.Name,
+            current?.PortraitUrl,
+            current?.PdfSheetUrl,
+            current?.ManualAc,
             VaultId = vault.Id,
             user.IsPaid,
             vaultName = vault?.Name ?? "Vault",
