@@ -37,3 +37,64 @@
   padding: 2px;
   overflow: hidden;
 }
+
+/* ---- migrated from App.css ---- */
+
+.slot-socket--valid-target {
+  outline: 2px solid #C4761F;
+  outline-offset: 2px;
+  box-shadow: 0 0 8px rgba(196, 118, 31, 0.5);
+}
+
+.slot-socket--over {
+  outline: 3px solid #C4761F;
+  outline-offset: 2px;
+  background: #C4761F33;
+}
+
+.slot-socket__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.slot-socket--linked {
+  opacity: 0.45;
+}
+
+.slot-socket--linked .slot-socket__image {
+  filter: grayscale(0.4);
+}
+
+.slot-socket__qty {
+  position: absolute;
+  bottom: -28px;             /* sits just below the socket */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel, #232327);
+  padding: 2px 4px;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.slot-socket__qty-btn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border, #37373D);
+  background: transparent;
+  color: var(--text, #E8E4DB);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 13px;
+}
+
+.slot-socket__qty-btn:hover:not(:disabled) { border-color: var(--amber, #C4761F); }
+
+.slot-socket__qty-btn:disabled { opacity: 0.4; cursor: default; }
+
+.slot-socket__qty-value { font-size: 13px; min-width: 16px; text-align: center; }

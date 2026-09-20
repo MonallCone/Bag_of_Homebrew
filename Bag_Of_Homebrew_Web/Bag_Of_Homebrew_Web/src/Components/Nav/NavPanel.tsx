@@ -1,3 +1,4 @@
+import '../../styles/Nav.css';
 import { useState } from 'react';
 
 interface CharacterSummary {

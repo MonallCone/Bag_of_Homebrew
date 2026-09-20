@@ -1,0 +1,32 @@
+.vault-view {
+  height: 100vh;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.vault-view__title {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  margin: 0;
+  text-align: center;
+  color: #E8E4DB;
+}
+
+.vault-view__panel {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+}
+
+.vault-view__panel .inventory-panel {
+  flex: 1;
+}
+
+.vault-view .inventory-slot-grid,
+.campaign-vault-tab .inventory-slot-grid {
+  grid-template-columns: repeat(10, 1fr);
+}

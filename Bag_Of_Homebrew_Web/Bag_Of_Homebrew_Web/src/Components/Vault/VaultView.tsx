@@ -1,3 +1,4 @@
+import '../../styles/VaultView.css';
 import { useCallback, useEffect, useState } from 'react';
 import type { Item } from '../../Types/model';
 import { InventoryPanel } from '../Inventory/InventoryPanel';

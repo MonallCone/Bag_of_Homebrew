@@ -1,3 +1,4 @@
+import '../../styles/Toast.css';
 import { createContext, useContext, useState, useCallback, type ReactNode} from 'react';
 
 type ToastKind = 'info' | 'success' | 'error';

@@ -1,3 +1,4 @@
+import '../../styles/PdfDropzone.css';
 import { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/TextLayer.css';

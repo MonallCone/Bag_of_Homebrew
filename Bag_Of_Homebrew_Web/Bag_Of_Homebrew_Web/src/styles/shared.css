@@ -1,0 +1,310 @@
+.modal__hint {
+  font-size: 11px;
+  color: #6E6E74;
+  font-style: italic;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 8px;
+  padding: 20px;
+  width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal__title {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  margin: 0;
+  color: #E8E4DB;
+}
+
+.modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #8C897F;
+}
+
+.modal__field input,
+.modal__field select,
+.modal__field textarea {
+  background: #1D1D21;
+  border: 1px solid #37373D;
+  border-radius: 4px;
+  color: #E8E4DB;
+  padding: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+.modal__field input:focus,
+.modal__field select:focus,
+.modal__field textarea:focus {
+  outline: none;
+  border-color: #C4761F;
+}
+
+.modal__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #E8E4DB;
+  cursor: pointer;
+  accent-color: #C4761F;
+}
+
+.modal__error {
+  color: #D96A4A;
+  font-size: 12px;
+  margin: 0;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modal__btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+}
+
+.modal__btn--primary {
+  background: #C4761F;
+  color: #17171B;
+  font-weight: 600;
+}
+
+.modal__btn--secondary {
+  background: transparent;
+  border: 1px solid #37373D;
+  color: #E8E4DB;
+}
+
+.modal__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.context-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 201;
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  width: max-content; 
+}
+
+.context-menu__item {
+  background: none;
+  border: none;
+  color: #E8E4DB;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.context-menu__item:hover {
+  background: #C4761F;
+  color: #17171B;
+}
+
+.context-menu__item--disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.context-menu__item--disabled:hover {
+  background: none;
+  color: #E8E4DB;
+}
+
+/* ---------- Rarity frames ---------- */
+/* Escalation: common = flat border → artifact = double ring + strong glow + shine */
+.rarity-frame {
+  position: relative;
+  border-radius: 6px;
+}
+
+.rarity-frame--common {
+  border: 2px solid #6E6E74 !important;
+}
+
+.rarity-frame--uncommon {
+  border: 2px solid #3FA34D !important;
+  box-shadow: 0 0 5px rgba(63, 163, 77, 0.35);
+}
+
+.rarity-frame--rare {
+  border: 2px solid #3D7DD8 !important;
+  box-shadow: 0 0 7px rgba(61, 125, 216, 0.45);
+}
+
+.rarity-frame--veryrare {
+  border: 2px solid #8B4FD8 !important;
+  box-shadow: 0 0 9px rgba(139, 79, 216, 0.55), inset 0 0 6px rgba(139, 79, 216, 0.2);
+}
+
+.rarity-frame--legendary {
+  border: 2px solid #D8A33D !important;
+  box-shadow: 0 0 12px rgba(216, 163, 61, 0.6), inset 0 0 8px rgba(216, 163, 61, 0.25);
+}
+
+.rarity-frame--artifact {
+  border: 2px solid #A34A2A !important;
+  box-shadow: 0 0 14px rgba(163, 74, 42, 0.7), inset 0 0 10px rgba(163, 74, 42, 0.3);
+}
+
+/* Legendary + artifact get a second inner ring for extra presence */
+.rarity-frame--legendary::before,
+.rarity-frame--artifact::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 4px;
+  border: 1px solid rgba(232, 228, 219, 0.35);
+  pointer-events: none;
+}
+
+/* Artifact also gets a slow ambient shine sweep */
+.rarity-frame--artifact::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 220, 180, 0.12) 50%, transparent 70%);
+  background-size: 250% 250%;
+  animation: artifact-shine 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes artifact-shine {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rarity-frame--artifact::after {
+    animation: none;
+  }
+}
+
+/* ---------- Plot flag indicator ---------- */
+.plot-dot {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #F5D67B, #C4761F);
+  border: 1px solid #17171B;
+  box-shadow: 0 0 4px rgba(196, 118, 31, 0.8);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.modal--confirm {
+  width: 340px;
+}
+
+.confirm-delete__text {
+  font-size: 13px;
+  color: #E8E4DB;
+  margin: 0;
+}
+
+.modal__btn--danger {
+  background: #B03A3A;
+  color: #E8E4DB;
+  font-weight: 600;
+}
+
+.context-menu__divider {
+  height: 1px;
+  background: #37373D;
+  margin: 4px 6px;
+}
+
+.context-menu__item--danger:hover {
+  background: #B03A3A;
+  color: #E8E4DB;
+}
+
+.modal__radio-group {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.modal__radio {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #E8E4DB;
+  cursor: pointer;
+  accent-color: #C4761F;
+}
+
+.context-menu__submenu-parent {
+  position: relative;
+}
+
+.context-menu__item--submenu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.context-menu__chevron {
+  color: #8C897F;
+  font-size: 11px;
+}
+
+.context-menu--sub {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 2px;
+}

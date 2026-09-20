@@ -1,3 +1,4 @@
+import '../../styles/Inventory.css';
 import { useState, useMemo } from 'react';
 import type { Item, ItemCategory, SlotType } from '../../Types/model';
 import { CategoryTabs } from './CategoryTabs';

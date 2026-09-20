@@ -1,3 +1,4 @@
+import '../../styles/CharacterSheet.css';
 import { useCallback, useEffect, useState } from 'react';
 import type { EquipmentSlotData, Item, SlotType } from '../../Types/model';
 import { EquipmentColumn } from './EquipmentColumn';

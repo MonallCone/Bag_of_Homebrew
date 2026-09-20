@@ -1,0 +1,347 @@
+.character-sheet-page {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;   /* equal thirds */
+  gap: 20px;
+  padding: 16px;
+  height: 100vh;        /* exactly the screen, no more */
+  overflow: hidden;     /* the page itself never scrolls */
+}
+
+.character-sheet-page__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+.character-sheet-page__name {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  margin: 0;
+  color: #E8E4DB;
+}
+
+.character-sheet-page__slots-row {
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+}
+
+.equipment-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 0;
+}
+
+.weapon-row {
+  display: flex;
+  gap: 12px;
+}
+
+.character-portrait {
+  width: 200px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.character-portrait img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.character-portrait__placeholder {
+  color: #8C897F;
+  font-size: 13px;
+}
+
+.character-sheet-page__bottom-section {
+  width: 100%;
+  min-height: 120px;
+  border: 1px dashed #37373D;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.drag-preview {
+  background: #232327;
+  border: 1px solid #C4761F;
+  border-radius: 6px;
+  color: #E8E4DB;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  cursor: grabbing;
+}
+
+.character-portrait--clickable {
+  cursor: pointer;
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.character-portrait--clickable:hover {
+  border-color: #37373D;
+}
+
+.weapon-summary {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.weapon-summary__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.4fr;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 4px;
+}
+
+.weapon-summary__row--header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8C897F;
+  border-bottom: 1px solid #37373D;
+  padding-bottom: 5px;
+  margin-bottom: 2px;
+}
+
+.weapon-summary__row--equipped {
+  border-bottom: 1px solid #2A2A2E;
+}
+
+.weapon-summary__name {
+  font-size: 13px;
+  color: #E8E4DB;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weapon-summary__input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: #E8E4DB;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  padding: 2px 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.weapon-summary__input:hover {
+  border-bottom-color: #37373D;
+}
+
+.weapon-summary__input:focus {
+  outline: none;
+  border-bottom-color: #C4761F;
+}
+
+.weapon-summary__damage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weapon-summary__die {
+  font-size: 13px;
+  color: #E8E4DB;
+  white-space: nowrap;
+}
+
+.weapon-summary__mod {
+  width: 48px;
+  flex-shrink: 0;
+}
+
+.ac-shield {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ac-shield__badge {
+  position: relative;
+  width: 72px;
+  height: 86px;
+}
+
+.ac-shield__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ac-shield__shape {
+  fill: #232327;
+  stroke: #C4761F;
+  stroke-width: 3;
+}
+
+.ac-shield__input {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 46px;
+  background: transparent;
+  border: none;
+  color: #E8E4DB;
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+}
+
+.ac-shield__input:focus {
+  outline: none;
+}
+
+.ac-shield__input::placeholder {
+  color: #8C897F;
+  font-size: 14px;
+}
+
+.ac-shield__equipped {
+  font-size: 10px;
+  color: #8C897F;
+  text-align: center;
+}
+
+.health-heart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.health-heart__badge {
+  position: relative;
+  width: 84px;
+  height: 78px;
+}
+
+.health-heart__svg { width: 100%; height: 100%; display: block; }
+
+.health-heart__shape {
+  fill: #2A1416;
+  stroke: #B03A3A;
+  stroke-width: 3;
+}
+
+.health-heart__values {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.health-heart__hp {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.health-heart__input {
+  width: 26px;
+  background: transparent;
+  border: none;
+  color: #F0E4E4;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+}
+
+.health-heart__input:focus { outline: none; }
+
+.health-heart__slash { color: #B03A3A; font-size: 14px; }
+
+.health-heart__readonly {
+  color: #F0E4E4;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.health-heart__temp {
+  font-size: 13px;
+  font-weight: 700;
+  color: #8FCFFF;
+  text-shadow:
+    0 0 4px rgba(120, 190, 255, 0.9),
+    0 0 8px rgba(120, 190, 255, 0.6),
+    0 0 12px rgba(90, 160, 255, 0.4);
+}
+
+.health-heart__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.health-heart__step {
+  width: 22px;
+  height: 22px;
+  background: #37373D;
+  color: #E8E4DB;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.health-heart__step:hover { background: #B03A3A; color: #17171B; }
+
+.health-heart__edit {
+  background: transparent;
+  border: 1px solid #37373D;
+  color: #8C897F;
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.health-heart__edit:hover { border-color: #B03A3A; color: #E8E4DB; }
+
+.health-modal__delta {
+  display: flex;
+  gap: 6px;
+}
+
+.health-modal__delta input { flex: 1; }
+
+.pouch-column {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  margin-top: 120px;    /* push it DOWN */
+  margin-left: 20px;    /* push it RIGHT, away from accessories */
+  width: 90px;          /* match the accessory socket width */
+}
