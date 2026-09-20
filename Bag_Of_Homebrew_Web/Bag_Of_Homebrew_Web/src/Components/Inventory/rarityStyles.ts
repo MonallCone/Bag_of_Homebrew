@@ -1,5 +1,9 @@
-import type { Item } from '../../Types/model';
+import type { Item, ItemRarity } from '../../Types/model';
+
+export function rarityFrameClassFor(rarity: ItemRarity): string {
+  return `rarity-frame rarity-frame--${rarity.toLowerCase()}`;
+}
 
 export function rarityFrameClass(item: Item): string {
-  return `rarity-frame rarity-frame--${item.rarity.toLowerCase()}`;
+  return rarityFrameClassFor(item.rarity);
 }

@@ -228,21 +228,6 @@
   }
 }
 
-/* ---------- Plot flag indicator ---------- */
-.plot-dot {
-  position: absolute;
-  bottom: 3px;
-  right: 3px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #F5D67B, #C4761F);
-  border: 1px solid #17171B;
-  box-shadow: 0 0 4px rgba(196, 118, 31, 0.8);
-  pointer-events: none;
-  z-index: 2;
-}
-
 .modal--confirm {
   width: 340px;
 }

@@ -697,3 +697,123 @@
   opacity: 1;
   visibility: visible;
 }
+
+/* ---------- Image picker modal: folder-tabbed like the inventory panel ---------- */
+.image-picker-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 640px;
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.image-picker-modal__title {
+  margin: 0 0 10px 0;
+}
+
+.image-picker-modal__tabs {
+  padding: 0;
+}
+
+.image-picker-modal__body {
+  background: #232327;
+  border: 1px solid #37373D;
+  border-radius: 0 8px 8px 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.image-picker-modal__gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+
+.image-picker-modal__empty {
+  font-size: 12px;
+  color: #8C897F;
+  font-style: italic;
+  margin: 0;
+}
+
+.image-picker-modal__actions {
+  margin-top: 10px;
+}
+
+/* ---------- Item form: image + name/category/rarity header ---------- */
+.item-form__header {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.item-form__image-btn {
+  flex-shrink: 0;
+  width: 220px;
+  height: 220px;
+  padding: 0;
+  background: #1D1D21;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: filter 0.15s ease;
+}
+
+.item-form__image-btn:hover {
+  filter: brightness(1.15);
+}
+
+.item-form__image-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: inherit;
+}
+
+.item-form__image-btn .image-picker__none {
+  font-size: 28px;
+  color: #8C897F;
+}
+
+.item-form__header-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-form__checkboxes {
+  display: flex;
+  gap: 18px;
+}
+
+.plot-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 14px;
+  color: #C4761F;
+  filter: drop-shadow(0 0 3px rgba(196, 118, 31, 0.8));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.attunement-dot {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 14px;
+  color: #6C3FD8;
+  filter: drop-shadow(0 0 3px rgba(108, 63, 216, 0.8));
+  pointer-events: none;
+  z-index: 2;
+}

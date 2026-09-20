@@ -16,6 +16,8 @@
         public ItemCategory Category { get; set; }
         public ItemRarity Rarity { get; set; }
         public bool IsPlotFlagged { get; set; }
+
+        public bool IsAttunement { get; set; }
         public string? HomebrewDescription { get; set; }
 
         // Category-specific fields (damage, AC, charges, etc.) stored as JSON

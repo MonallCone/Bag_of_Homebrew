@@ -58,6 +58,7 @@ public class VaultController : ControllerBase
             Category = category,
             Rarity = rarity,
             IsPlotFlagged = request.IsPlotFlagged,
+            IsAttunement = request.IsAttunement,
             HomebrewDescription = request.HomebrewDescription,
             PropertiesJson = request.PropertiesJson ?? "{}",
             ImageUrl = request.ImageUrl,
@@ -82,6 +83,34 @@ public class VaultController : ControllerBase
         _db.Items.Remove(item);
         await _db.SaveChangesAsync();
         return Ok();
+    }
+
+    [HttpPut("{vaultId:guid}/items/{itemId:guid}")]
+    public async Task<IActionResult> UpdateItem(Guid vaultId, Guid itemId, CreateItemRequest request)
+    {
+        var user = await GetCurrentUser(HttpContext, _db);
+        if (user is null) return Unauthorized();
+        if (!await OwnsVault(vaultId, user, _db)) return NotFound();
+
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == vaultId);
+        if (item is null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("Item name is required.");
+        if (!Enum.TryParse<ItemCategory>(request.Category, out var category)) return BadRequest("Invalid category.");
+        if (!Enum.TryParse<ItemRarity>(request.Rarity, out var rarity)) return BadRequest("Invalid rarity.");
+
+        item.Name = request.Name.Trim();
+        item.Category = category;
+        item.Rarity = rarity;
+        item.IsPlotFlagged = request.IsPlotFlagged;
+        item.IsAttunement = request.IsAttunement;
+        item.HomebrewDescription = request.HomebrewDescription;
+        item.PropertiesJson = request.PropertiesJson ?? "{}";
+        item.ImageUrl = request.ImageUrl;
+        if (category == ItemCategory.Consumable) item.Quantity = request.Quantity ?? item.Quantity ?? 1;
+
+        await _db.SaveChangesAsync();
+        return Ok(ItemDto.From(item));
     }
 
     [HttpPatch("{vaultId:guid}/items/{itemId:guid}/quantity")]

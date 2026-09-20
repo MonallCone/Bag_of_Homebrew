@@ -18,6 +18,8 @@ interface Props {
   onRejectTransfer?: (transferId: string) => void;
   inCampaign?: boolean;
   onClose: () => void;
+  onEditRequest?: (item: Item) => void;
+  onDuplicate?: (item: Item) => void;
 }
 
 export function ItemContextMenu({
@@ -36,6 +38,8 @@ export function ItemContextMenu({
   onRejectTransfer,
   inCampaign = false,
   onClose,
+  onEditRequest,
+  onDuplicate
 }: Props) {
   const [charSubmenuOpen, setCharSubmenuOpen] = useState(false);
   const [giftSubmenuOpen, setGiftSubmenuOpen] = useState(false);
@@ -245,9 +249,17 @@ export function ItemContextMenu({
             Use one ({item.quantity ?? 0} left)
           </button>
         )}
-
-        {/* Delete */}
+        
         <div className="context-menu__divider" />
+        {/* Copy */}
+        <button className="context-menu__item" onClick={() => { onDuplicate?.(item); onClose(); }}>
+          Copy
+        </button>
+        {/* Edit */}
+        <button className="context-menu__item" onClick={() => { onEditRequest?.(item); onClose(); }}>
+          Edit
+        </button>
+        {/* Delete */}
         <button
           className="context-menu__item context-menu__item--danger"
           onClick={() => { onDeleteRequest(item); onClose(); }}

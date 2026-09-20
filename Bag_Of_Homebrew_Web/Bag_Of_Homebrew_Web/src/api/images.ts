@@ -1,5 +1,7 @@
 import { API_BASE } from '../config';
 
+export interface DefaultImage { url: string; category: string}
+
 export async function uploadImage(file: File, kind: 'items' | 'portraits' | 'sheets'): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
@@ -19,7 +21,7 @@ export async function uploadImage(file: File, kind: 'items' | 'portraits' | 'she
   return data.url;
 }
 
-export async function fetchDefaultImages(): Promise<string[]> {
+export async function fetchDefaultImages(): Promise<DefaultImage[]> {
   const res = await fetch(`${API_BASE}/api/images/defaults`, { credentials: 'include' });
   if (!res.ok) return [];
   return res.json();

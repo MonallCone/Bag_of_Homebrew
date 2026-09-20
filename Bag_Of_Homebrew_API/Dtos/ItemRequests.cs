@@ -5,6 +5,7 @@ public record CreateItemRequest(
     string Category,
     string Rarity,
     bool IsPlotFlagged,
+    bool IsAttunement,
     string? HomebrewDescription,
     string? PropertiesJson,
     string? ImageUrl,

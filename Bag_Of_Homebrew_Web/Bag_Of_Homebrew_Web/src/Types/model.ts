@@ -7,6 +7,7 @@ export interface Item {
   category: ItemCategory;
   rarity: ItemRarity;
   isPlotFlagged: boolean;
+  isAttunement: boolean;
   homebrewDescription?: string;
   imageUrl?: string;
   properties: Record<string, unknown>;

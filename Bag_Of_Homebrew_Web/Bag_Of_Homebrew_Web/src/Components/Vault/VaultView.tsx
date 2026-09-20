@@ -97,6 +97,34 @@ export function VaultView({ vaultId, vaultName, characters }: Props) {
         }
     };
 
+    const editItem = async (itemId: string, payload: CreateItemPayload) => {
+      const res = await fetch(`${API_BASE}/api/vaults/${itemId}/items/${itemId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => '');
+        throw new Error(msg || 'Update failed');
+      }
+      await loadItems();
+    };
+
+    const duplicateItem = async (item: Item) => {
+    await createItem({
+      name: `${item.name} (copy)`,
+      category: item.category,
+      rarity: item.rarity,
+      isPlotFlagged: item.isPlotFlagged,
+      isAttunement: item.isAttunement,
+      homebrewDescription: item.homebrewDescription ?? '',
+      propertiesJson: JSON.stringify(item.properties),
+      imageUrl: item.imageUrl ?? null,
+      quantity: item.quantity,
+    });
+  };
+
   return (
     <div className="vault-view">
       <h1 className="vault-view__title">{vaultName}</h1>
@@ -110,8 +138,10 @@ export function VaultView({ vaultId, vaultName, characters }: Props) {
           onSelectItem={setSelectedItem}
           onEquip={undefined}
           onReturnToVault={undefined}
-          sendToCharacterTargets={characters}   // ← new
-          onSendToCharacter={sendToCharacter}   // ← new
+          sendToCharacterTargets={characters}
+          onSendToCharacter={sendToCharacter} 
+          onEditItem={editItem}
+          onDuplicate={duplicateItem}
         />
       </div>
     </div>

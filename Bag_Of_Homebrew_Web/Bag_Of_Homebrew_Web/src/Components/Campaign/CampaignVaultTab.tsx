@@ -45,6 +45,34 @@ export function CampaignVaultTab({ campaignId, isGm, players = [], refreshSignal
     await loadItems();
   };
 
+  const duplicateItem = async (item: Item) => {
+    await createItem({
+      name: `${item.name} (copy)`,
+      category: item.category,
+      rarity: item.rarity,
+      isPlotFlagged: item.isPlotFlagged,
+      isAttunement: item.isAttunement,
+      homebrewDescription: item.homebrewDescription ?? '',
+      propertiesJson: JSON.stringify(item.properties),
+      imageUrl: item.imageUrl ?? null,
+      quantity: item.quantity,
+    });
+  };
+
+  const editItem = async (itemId: string, payload: CreateItemPayload) => {
+    const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}/vault/${itemId}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      throw new Error(msg || 'Update failed');
+    }
+    await loadItems();
+  };
+
   const deleteItem = async (itemId: string) => {
     const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}/vault/items/${itemId}`, {
       method: 'DELETE', credentials: 'include',
@@ -80,6 +108,8 @@ export function CampaignVaultTab({ campaignId, isGm, players = [], refreshSignal
         onReturnToVault={undefined}
         sendToCharacterTargets={isGm ? players.map((p) => ({ id: p.userId, name: p.characterName ?? p.userName })) : undefined}
         onSendToCharacter={isGm ? sendToCharacter : undefined}
+        onEditItem={editItem}
+        onDuplicate={duplicateItem}
       />
     </div>
   );

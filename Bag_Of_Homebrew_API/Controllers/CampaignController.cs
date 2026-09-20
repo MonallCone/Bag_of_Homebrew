@@ -356,6 +356,36 @@ public class CampaignController : ControllerBase
         return Ok();
     }
 
+    [HttpPut("{campaignId:guid}/vault/items/{itemId:guid}")]
+    public async Task<IActionResult> UpdateVaultItem(Guid campaignId, Guid itemId, CreateItemRequest request)
+    {
+        var user = await GetCurrentUser(HttpContext, _db);
+        if (user is null) return Unauthorized();
+        var membership = await GetMembership(campaignId, user, _db);
+        if (membership is null) return NotFound();
+        if (membership.Role != CampaignRole.Gm) return Forbid();
+
+        var campaign = await _db.Campaigns.FirstAsync(c => c.Id == campaignId);
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == campaign.VaultId);
+        if (item is null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("Item name is required.");
+        if (!Enum.TryParse<ItemCategory>(request.Category, out var category)) return BadRequest("Invalid category.");
+        if (!Enum.TryParse<ItemRarity>(request.Rarity, out var rarity)) return BadRequest("Invalid rarity.");
+
+        item.Name = request.Name.Trim();
+        item.Category = category;
+        item.Rarity = rarity;
+        item.IsPlotFlagged = request.IsPlotFlagged;
+        item.HomebrewDescription = request.HomebrewDescription;
+        item.PropertiesJson = request.PropertiesJson ?? "{}";
+        item.ImageUrl = request.ImageUrl;
+        if (category == ItemCategory.Consumable) item.Quantity = request.Quantity ?? item.Quantity ?? 1;
+
+        await _db.SaveChangesAsync();
+        return Ok(ItemDto.From(item));
+    }
+
     [HttpPost("{campaignId:guid}/vault/items/{itemId:guid}/send-to-character")]
     public async Task<IActionResult> SendVaultItemToCharacter(Guid campaignId, Guid itemId, SendVaultItemRequest request)
     {

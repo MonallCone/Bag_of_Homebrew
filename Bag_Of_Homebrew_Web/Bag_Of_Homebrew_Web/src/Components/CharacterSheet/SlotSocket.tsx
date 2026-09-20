@@ -28,7 +28,7 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, i
     isValidTarget ? 'slot-socket--valid-target' : '',
     isValidTarget && isOver ? 'slot-socket--over' : '',
   ].filter(Boolean).join(' ');
-  console.log('pouch item', slot.item?.name, 'qty:', slot.item?.quantity, 'id:', slot.item?.id);
+
   return (
     <div
       ref={setNodeRef}

@@ -48,7 +48,8 @@ interface SlotProps {
         )}
 
         {/* Rarity/plot indicators */}
-        {item.isPlotFlagged && <span className="plot-dot" />}
+        {item.isPlotFlagged && <i className="fa-solid fa-flag plot-dot"></i>}
+        {item.isAttunement && <i className="fa-regular fa-circle-dot attunement-dot" title="Requires attunement"></i>}
 
         {/* Incoming gift — present icon */}
         {item.__pendingIncoming && (

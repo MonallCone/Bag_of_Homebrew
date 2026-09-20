@@ -122,6 +122,38 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
     await refreshUsage();
   };
 
+  const editItem = async (itemId: string, payload: CreateItemPayload) => {
+    if (readOnly) return;
+    const res = await fetch(`${API_BASE}/api/characters/${characterId}/items/${itemId}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      throw new Error(msg || 'Update failed');
+    }
+    await loadItems();
+    await loadSlots();     // in case the edited item was equipped and its category/slot-validity changed
+    await refreshUsage();
+  };
+
+  const duplicateItem = async (item: Item) => {
+    if (readOnly) return;
+    await createItem({
+      name: `${item.name} (copy)`,
+      category: item.category,
+      rarity: item.rarity,
+      isPlotFlagged: item.isPlotFlagged,
+      isAttunement: item.isAttunement,
+      homebrewDescription: item.homebrewDescription ?? '',
+      propertiesJson: JSON.stringify(item.properties),
+      imageUrl: item.imageUrl ?? null,
+      quantity: item.quantity,
+    });
+  };
+
   const equipItem = async (itemId: string, slotType: SlotType, twoHanded = false) => {
     if (readOnly) return;
     const res = await fetch(`${API_BASE}/api/characters/${characterId}/equip`, {
@@ -434,6 +466,8 @@ useEffect(() => {
         onCurrencyChange={handleCurrencyChange}
         currencyReadOnly={readOnly}
         itemUsage={usage}
+        onEditItem={readOnly ? undefined : editItem}
+        onDuplicate={readOnly ? undefined : duplicateItem}
       />
     </div>
 

@@ -84,14 +84,33 @@ public class ImagesController : ControllerBase
     [HttpGet("defaults")]
     public IActionResult GetDefaults()
     {
-        var directory = Path.Combine(_env.WebRootPath, "defaults", "items");
-        if (!Directory.Exists(directory))
+        var root = Path.Combine(_env.WebRootPath, "defaults");
+        if (!Directory.Exists(root))
             return Ok(Array.Empty<object>());
 
-        var urls = Directory.GetFiles(directory)
-            .Select(f => $"/defaults/items/{Path.GetFileName(f)}")
-            .ToArray();
+        // disk folder name -> ItemCategory value the frontend expects
+        var categoryFolders = new Dictionary<string, string>
+        {
+            ["weapon"] = "Weapon",
+            ["armour"] = "Armour",
+            ["accessory"] = "Accessory",
+            ["consumable"] = "Consumable",
+            ["misc"] = "Misc"
+        };
 
-        return Ok(urls);
+        var results = new List<object>();
+
+        foreach (var (folder, category) in categoryFolders)
+        {
+            var dir = Path.Combine(root, folder);
+            if (!Directory.Exists(dir)) continue;
+
+            foreach (var f in Directory.GetFiles(dir))
+            {
+                results.Add(new { url = $"/defaults/{folder}/{Path.GetFileName(f)}", category });
+            }
+        }
+
+        return Ok(results);
     }
 }

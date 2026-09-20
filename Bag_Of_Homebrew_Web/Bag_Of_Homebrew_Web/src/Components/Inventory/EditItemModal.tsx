@@ -1,47 +1,40 @@
 import { useState } from 'react';
-import type { ItemCategory, ItemRarity } from '../../Types/model';
+import type { Item, ItemCategory, ItemRarity } from '../../Types/model';
 import { ImagePicker } from './ImagePicker';
+import type { CreateItemPayload } from './CreateItemModal';
 
 const RARITIES: ItemRarity[] = ['Common', 'Uncommon', 'Rare', 'VeryRare', 'Legendary', 'Artifact'];
 const CATEGORIES: ItemCategory[] = ['Weapon', 'Armour', 'Accessory', 'Consumable', 'Misc'];
 const ARMOUR_SLOTS = ['Chest', 'Helm', 'Boots', 'Gloves', 'Shield'];
 
-export interface CreateItemPayload {
-  name: string;
-  category: ItemCategory;
-  rarity: ItemRarity;
-  isPlotFlagged: boolean;
-  isAttunement: boolean;
-  homebrewDescription: string;
-  propertiesJson: string;
-  imageUrl: string | null;
-  quantity?: number;
-}
-
 interface Props {
+  item: Item;
   onClose: () => void;
-  onCreate: (payload: CreateItemPayload) => Promise<void>;
+  onSave: (itemId: string, payload: CreateItemPayload) => Promise<void>;
 }
 
-export function CreateItemModal({ onClose, onCreate }: Props) {
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<ItemCategory>('Weapon');
-  const [rarity, setRarity] = useState<ItemRarity>('Common');
-  const [isPlotFlagged, setIsPlotFlagged] = useState(false);
-  const [isAttunement, setIsAttunement] = useState(false);
-  const [homebrewDescription, setHomebrewDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+export function EditItemModal({ item, onClose, onSave }: Props) {
+  const [name, setName] = useState(item.name);
+  const [category, setCategory] = useState<ItemCategory>(item.category);
+  const [rarity, setRarity] = useState<ItemRarity>(item.rarity);
+  const [isPlotFlagged, setIsPlotFlagged] = useState(item.isPlotFlagged);
+  const [isAttunement, setIsAttunement] = useState(item.isAttunement);
+  const [homebrewDescription, setHomebrewDescription] = useState(item.homebrewDescription ?? '');
+  const [imageUrl, setImageUrl] = useState<string | null>(item.imageUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [damage, setDamage] = useState('');
-  const [weaponProperties, setWeaponProperties] = useState('');
-  const [handedness, setHandedness] = useState<'OneHanded' | 'TwoHanded' | 'Versatile'>('OneHanded');
-  const [armourSlot, setArmourSlot] = useState('Chest');
-  const [acValue, setAcValue] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [effect, setEffect] = useState('');
-  const [damageTwoHanded, setDamageTwoHanded] = useState('');
+  const p = item.properties;
+  const [damage, setDamage] = useState((p.damage as string) ?? '');
+  const [weaponProperties, setWeaponProperties] = useState((p.properties as string) ?? '');
+  const [handedness, setHandedness] = useState<'OneHanded' | 'TwoHanded' | 'Versatile'>(
+    (p.handedness as 'OneHanded' | 'TwoHanded' | 'Versatile') ?? 'OneHanded'
+  );
+  const [damageTwoHanded, setDamageTwoHanded] = useState((p.damageTwoHanded as string) ?? '');
+  const [armourSlot, setArmourSlot] = useState((p.slot as string) ?? 'Chest');
+  const [acValue, setAcValue] = useState((p.ac as string) ?? '');
+  const [quantity, setQuantity] = useState(String(item.quantity ?? 1));
+  const [effect, setEffect] = useState((p.effect as string) ?? '');
 
   const buildProperties = (): Record<string, unknown> => {
     switch (category) {
@@ -64,14 +57,11 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      setError('Name is required.');
-      return;
-    }
+    if (!name.trim()) { setError('Name is required.'); return; }
     setSaving(true);
     setError(null);
     try {
-      await onCreate({
+      await onSave(item.id, {
         name: name.trim(),
         category,
         rarity,
@@ -94,7 +84,7 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="create-modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal__title">Create Item</h2>
+        <h2 className="modal__title">Edit Item</h2>
 
         <div className="item-form__header">
           <ImagePicker value={imageUrl} onChange={setImageUrl} rarity={rarity} />
@@ -102,24 +92,20 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
           <div className="item-form__header-fields">
             <label className="modal__field">
               Name
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Flametongue Dagger" />
+              <input value={name} onChange={(e) => setName(e.target.value)} />
             </label>
 
             <label className="modal__field">
               Category
               <select value={category} onChange={(e) => setCategory(e.target.value as ItemCategory)}>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </label>
 
             <label className="modal__field">
               Rarity
               <select value={rarity} onChange={(e) => setRarity(e.target.value as ItemRarity)}>
-                {RARITIES.map((r) => (
-                  <option key={r} value={r}>{r === 'VeryRare' ? 'Very Rare' : r}</option>
-                ))}
+                {RARITIES.map((r) => <option key={r} value={r}>{r === 'VeryRare' ? 'Very Rare' : r}</option>)}
               </select>
             </label>
           </div>
@@ -129,34 +115,24 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
           <>
             <label className="modal__field">
               {handedness === 'Versatile' ? 'Damage (one-handed)' : 'Damage'}
-              <input value={damage} onChange={(e) => setDamage(e.target.value)} placeholder="e.g. 1d8 slashing" />
+              <input value={damage} onChange={(e) => setDamage(e.target.value)} />
             </label>
-
             {handedness === 'Versatile' && (
               <label className="modal__field">
                 Damage (two-handed)
-                <input value={damageTwoHanded} onChange={(e) => setDamageTwoHanded(e.target.value)} placeholder="e.g. 1d10 slashing" />
+                <input value={damageTwoHanded} onChange={(e) => setDamageTwoHanded(e.target.value)} />
               </label>
             )}
             <label className="modal__field">
               Properties
-              <input value={weaponProperties} onChange={(e) => setWeaponProperties(e.target.value)} placeholder="e.g. finesse, light" />
+              <input value={weaponProperties} onChange={(e) => setWeaponProperties(e.target.value)} />
             </label>
             <div className="modal__field">
               <span>Handedness</span>
               <div className="modal__radio-group">
-                {([
-                  ['OneHanded', 'One-handed'],
-                  ['TwoHanded', 'Two-handed'],
-                  ['Versatile', 'Versatile'],
-                ] as const).map(([value, label]) => (
+                {([['OneHanded', 'One-handed'], ['TwoHanded', 'Two-handed'], ['Versatile', 'Versatile']] as const).map(([value, label]) => (
                   <label key={value} className="modal__radio">
-                    <input
-                      type="radio"
-                      name="handedness"
-                      checked={handedness === value}
-                      onChange={() => setHandedness(value)}
-                    />
+                    <input type="radio" name="handedness-edit" checked={handedness === value} onChange={() => setHandedness(value)} />
                     {label}
                   </label>
                 ))}
@@ -170,15 +146,13 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
             <label className="modal__field">
               Armour slot
               <select value={armourSlot} onChange={(e) => setArmourSlot(e.target.value)}>
-                {ARMOUR_SLOTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {ARMOUR_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </label>
             {showAc && (
               <label className="modal__field">
                 AC
-                <input value={acValue} onChange={(e) => setAcValue(e.target.value)} placeholder="e.g. 14 or +2" />
+                <input value={acValue} onChange={(e) => setAcValue(e.target.value)} />
               </label>
             )}
           </>
@@ -192,20 +166,14 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
             </label>
             <label className="modal__field">
               Effect
-              <textarea value={effect} onChange={(e) => setEffect(e.target.value)} rows={2} placeholder="e.g. Restores 2d4+2 HP" />
+              <textarea value={effect} onChange={(e) => setEffect(e.target.value)} rows={2} />
             </label>
           </>
         )}
 
         <label className="modal__field">
           Abilities / description (homebrew)
-          <textarea
-            value={homebrewDescription}
-            onChange={(e) => setHomebrewDescription(e.target.value)}
-            rows={7}
-            placeholder="Freeform abilities, lore, or notes"
-          />
-          <span className="modal__hint">Formatting: **bold**, *italic*, ***both***, - bullet</span>
+          <textarea value={homebrewDescription} onChange={(e) => setHomebrewDescription(e.target.value)} rows={7} />
         </label>
 
         <div className="item-form__checkboxes">
@@ -223,11 +191,9 @@ export function CreateItemModal({ onClose, onCreate }: Props) {
         {error && <p className="modal__error">{error}</p>}
 
         <div className="modal__actions">
-          <button className="modal__btn modal__btn--secondary" onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
+          <button className="modal__btn modal__btn--secondary" onClick={onClose} disabled={saving}>Cancel</button>
           <button className="modal__btn modal__btn--primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? 'Saving…' : 'Create item'}
+            {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       </div>

@@ -12,6 +12,7 @@ import type { CurrencyAmounts } from './coins';
 import { CurrencyBar } from './CurrencyBar';
 import type { ItemUsage } from '../../api/itemUsage';
 import { ItemUsageIndicator } from './ItemUsageIndicator';
+import { EditItemModal } from './EditItemModal';
 
 type TabValue = 'All' | ItemCategory | 'PlotItems';
 
@@ -35,14 +36,17 @@ interface Props {
   onCurrencyChange?: (amounts: CurrencyAmounts) => void;
   currencyReadOnly?: boolean;
   itemUsage?: ItemUsage | null;
+  onEditItem?: (itemId: string, payload: CreateItemPayload) => Promise<void>;
+  onDuplicate?: (item: Item) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly, itemUsage }: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly, itemUsage, onEditItem, onDuplicate}: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
   const [sort, setSort] = useState<SortOption>('newest');
   const [pendingDelete, setPendingDelete] = useState<Item | null>(null);
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
 
   const visibleItems = useMemo(() => {
     let list = items;
@@ -96,6 +100,17 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
         <CreateItemModal onClose={() => setShowCreateModal(false)} onCreate={onCreateItem} />
       )}
 
+      {editingItem && onEditItem && (
+        <EditItemModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSave={async (itemId, payload) => {
+            await onEditItem(itemId, payload);
+            setEditingItem(null);
+          }}
+        />
+      )}
+
       {contextMenu && (
         <ItemContextMenu
           item={contextMenu.item}
@@ -113,6 +128,8 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           onGift={onGift}
           onAcceptTransfer={onAcceptTransfer}
           onRejectTransfer={onRejectTransfer}
+          onEditRequest={onEditItem ? (item) => setEditingItem(item) : undefined}
+          onDuplicate={onDuplicate}
         />
       )}
 
