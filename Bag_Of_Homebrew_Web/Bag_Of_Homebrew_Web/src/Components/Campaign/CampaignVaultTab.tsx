@@ -12,9 +12,10 @@ interface Props {
   campaignId: string;
   isGm: boolean;
   players: Player[];
+  refreshSignal?: number;
 }
 
-export function CampaignVaultTab({ campaignId, isGm, players = []}: Props) {
+export function CampaignVaultTab({ campaignId, isGm, players = [], refreshSignal}: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const { showToast } = useToast();
@@ -28,6 +29,12 @@ export function CampaignVaultTab({ campaignId, isGm, players = []}: Props) {
   }, [campaignId]);
 
   useEffect(() => { loadItems(); }, [loadItems]);
+
+  useEffect(() => {
+    if (refreshSignal === undefined) return;
+    loadItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshSignal]);
 
   const createItem = async (payload: CreateItemPayload) => {
     const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}/vault/items`, {

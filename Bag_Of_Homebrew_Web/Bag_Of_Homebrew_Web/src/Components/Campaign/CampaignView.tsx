@@ -4,6 +4,7 @@ import { CharacterSheetPage } from '../CharacterSheet/CharacterSheetPage';
 import { type ApiItem} from '../../api/item';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE } from '../../config';
+import { createCampaignConnection } from '../../api/campaignHub';
 
 interface Member {
   userId: string;
@@ -39,6 +40,7 @@ export function CampaignView({ campaignId, currentUserId, isPaid }: Props) {
   const [campaign, setCampaign] = useState<CampaignInfo | null>(null);
   const [incoming, setIncoming] = useState<IncomingTransfer[]>([]);
   const [outgoing, setOutgoing] = useState<OutgoingTransfer[]>([]);
+  const [refreshSignal, setRefreshSignal] = useState(0);
   const navigate = useNavigate();
   const params = useParams();
   const location = useLocation();
@@ -68,6 +70,37 @@ export function CampaignView({ campaignId, currentUserId, isPaid }: Props) {
   }, [campaignId]);
 
   useEffect(() => { loadMembers(); loadCampaign(); loadTransfers();}, [loadMembers, loadCampaign, loadTransfers]);
+
+  useEffect(() => {
+  const connection = createCampaignConnection();
+
+  connection.on('TransferOffered', (transfer: IncomingTransfer) => {
+    setIncoming((prev) => [...prev, transfer]);
+  });
+
+  connection.on('TransferResolved', (payload: { transferId: string; status: string }) => {
+    setOutgoing((prev) => prev.filter((t) => t.transferId !== payload.transferId));
+    setIncoming((prev) => prev.filter((t) => t.transferId !== payload.transferId));
+  });
+
+  connection.on('ItemReceivedFromVault', () => {
+    loadTransfers();
+    setRefreshSignal((n) => n + 1);
+  });
+
+  connection.on('CampaignVaultUpdated', () => {
+    setRefreshSignal((n) => n + 1);
+  });
+
+  connection
+    .start()
+    .then(() => connection.invoke('JoinCampaign', campaignId))
+    .catch((err) => console.error('SignalR connection failed', err));
+
+  return () => {
+    connection.stop();
+  };
+}, [campaignId]);
 
   const isGm = campaign?.isGm ?? false;
   const players = members.filter((m) => !m.isGm);
@@ -114,7 +147,7 @@ export function CampaignView({ campaignId, currentUserId, isPaid }: Props) {
         <div className="campaign-view__body">
             <div className="campaign-view__body">
             {activeTab.kind === 'vault' ? (
-                <CampaignVaultTab campaignId={campaignId} isGm={isGm} players={players.filter((p) => p.characterId)}/>
+                <CampaignVaultTab campaignId={campaignId} isGm={isGm} players={players.filter((p) => p.characterId)} refreshSignal={refreshSignal}/>
             ) : (() => {
                 const player = players.find((p) => p.userId === activeTab.userId);
                 if (!player?.characterId) return <p className="campaign-view__placeholder">No character.</p>;
@@ -138,6 +171,7 @@ export function CampaignView({ campaignId, currentUserId, isPaid }: Props) {
                   }}
                   readOnly={!isYou}
                   isPaid={isPaid}
+                  refreshSignal={refreshSignal}
                 />
                 );
             })()}

@@ -44,10 +44,11 @@ interface Props {
   vaultId: string;          
   campaign?: CampaignContext;    
   readOnly?: boolean;       
-  isPaid: boolean   
+  isPaid: boolean;   
+  refreshSignal?: number;
 }
 
-export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = false, isPaid}: Props) {
+export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = false, isPaid, refreshSignal}: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [slots, setSlots] = useState<EquipmentSlotData[]>([]);
   const [draggedItem, setDraggedItem] = useState<Item | null>(null);
@@ -257,7 +258,7 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
     });
   };
 
-const returnToVault = async (itemId: string) => {
+  const returnToVault = async (itemId: string) => {
     if (readOnly) return;
 
     const url = campaign
@@ -308,6 +309,12 @@ const returnToVault = async (itemId: string) => {
 }, [readOnly, campaign, loadCharacter, loadItems, loadSlots]);
 
 useEffect(() => { loadEverything(); }, [loadEverything]);
+
+useEffect(() => {
+  if (refreshSignal === undefined) return;
+  loadEverything();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [refreshSignal]);
 
   const giftItem = async (itemId: string, toUserId: string) => {
     if (!campaign) return;

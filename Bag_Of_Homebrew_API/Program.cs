@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Bag_Of_Homebrew_API.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +45,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddSignalR();
+
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddCors(options =>
@@ -56,6 +60,11 @@ if (builder.Environment.IsDevelopment())
 }
 
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapHub<CampaignHub>("/hubs/campaign");
 
 var forwardedOptions = new ForwardedHeadersOptions
 {
@@ -1179,7 +1188,7 @@ app.MapPost("/api/campaigns/{campaignId:guid}/return-to-vault", async (
 });
 
 app.MapPost("/api/campaigns/{campaignId:guid}/gift", async (
-    Guid campaignId, GiftItemRequest request, HttpContext ctx, AppDbContext db) =>
+    Guid campaignId, GiftItemRequest request, HttpContext ctx, AppDbContext db, IHubContext<CampaignHub> hub) =>
 {
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
@@ -1225,6 +1234,13 @@ app.MapPost("/api/campaigns/{campaignId:guid}/gift", async (
     };
     db.ItemTransfers.Add(transfer);
     await db.SaveChangesAsync();
+
+    await hub.Clients.Group($"user:{request.ToUserId}").SendAsync("TransferOffered", new
+    {
+        transferId = transfer.Id,
+        fromUserId = user.Id,
+        item = ItemDto.From(item)
+    });
 
     return Results.Ok(new { transfer.Id });
 });
@@ -1275,7 +1291,7 @@ app.MapGet("/api/campaigns/{campaignId:guid}/transfers/outgoing", async (
 });
 
 app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/accept", async (
-    Guid campaignId, Guid transferId, HttpContext ctx, AppDbContext db) =>
+    Guid campaignId, Guid transferId, HttpContext ctx, AppDbContext db, IHubContext<CampaignHub> hub) =>
 {
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
@@ -1309,11 +1325,17 @@ app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/accept
     transfer.Status = TransferStatus.Accepted;
     await db.SaveChangesAsync();
 
+    await hub.Clients.Group($"user:{transfer.FromUserId}").SendAsync("TransferResolved", new
+    {
+        transferId = transfer.Id,
+        status = "Accepted"
+    });
+
     return Results.Ok();
 });
 
 app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/reject", async (
-    Guid campaignId, Guid transferId, HttpContext ctx, AppDbContext db) =>
+    Guid campaignId, Guid transferId, HttpContext ctx, AppDbContext db, IHubContext<CampaignHub> hub) =>
 {
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
@@ -1330,11 +1352,18 @@ app.MapPost("/api/campaigns/{campaignId:guid}/transfers/{transferId:guid}/reject
     transfer.Status = TransferStatus.Rejected;
     await db.SaveChangesAsync();
 
+    var notifyUserId = transfer.FromUserId == user.Id ? transfer.ToUserId : transfer.FromUserId;
+    await hub.Clients.Group($"user:{notifyUserId}").SendAsync("TransferResolved", new
+    {
+        transferId = transfer.Id,
+        status = "Rejected"
+    });
+
     return Results.Ok();
 });
 
 app.MapPost("/api/campaigns/{campaignId:guid}/vault/items/{itemId:guid}/send-to-character", async (
-    Guid campaignId, Guid itemId, SendVaultItemRequest request, HttpContext ctx, AppDbContext db) =>
+    Guid campaignId, Guid itemId, SendVaultItemRequest request, HttpContext ctx, AppDbContext db, IHubContext<CampaignHub> hub) =>
 {
     var user = await GetCurrentUser(ctx, db);
     if (user is null) return Results.Unauthorized();
@@ -1365,6 +1394,10 @@ app.MapPost("/api/campaigns/{campaignId:guid}/vault/items/{itemId:guid}/send-to-
     item.CharacterId = targetMembership.CharacterId.Value;
 
     await db.SaveChangesAsync();
+
+    await hub.Clients.Group($"user:{targetMembership.UserId}").SendAsync("ItemReceivedFromVault", ItemDto.From(item));
+    await hub.Clients.Group($"campaign:{campaignId}").SendAsync("CampaignVaultUpdated");
+
     return Results.Ok();
 });
 
