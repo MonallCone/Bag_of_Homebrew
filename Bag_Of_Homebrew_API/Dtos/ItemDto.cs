@@ -13,6 +13,8 @@ public record ItemDto(
     string PropertiesJson,
     string? ImageUrl,
     int? Quantity,
+    bool IsHiddenFromPlayers,
+    bool IsHiddenByGm,
     DateTime CreatedAt)
 {
     public static ItemDto From(Item i) => new(
@@ -26,5 +28,7 @@ public record ItemDto(
         i.PropertiesJson,
         i.ImageUrl,
         i.Quantity,
+        i.IsHiddenFromPlayers,
+        i.IsHiddenByGm,
         i.CreatedAt);
 }

@@ -817,3 +817,52 @@
   pointer-events: none;
   z-index: 2;
 }
+
+.inventory-slot--redacted,
+.slot-socket--redacted {
+  overflow: hidden;
+}
+
+.hidden-cloud {
+  position: absolute;
+  inset: -10px;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(190, 190, 198, 0.55), transparent 60%),
+    radial-gradient(circle at 65% 60%, rgba(150, 150, 158, 0.5), transparent 65%),
+    radial-gradient(circle at 45% 80%, rgba(210, 210, 216, 0.45), transparent 55%),
+    #2A2A2E;
+  background-size: 200% 200%, 220% 220%, 240% 240%, 100% 100%;
+  filter: blur(6px);
+  animation: cloud-haze 10s ease-in-out infinite;
+}
+
+@keyframes cloud-haze {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 50% 0%; }
+  50%      { background-position: 60% 40%, 20% 70%, 80% 30%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hidden-cloud { animation: none; }
+}
+
+/* ---------- Reminder overlay (owner/GM view): the actual image blurs underneath ---------- */
+.hidden-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: rgba(232, 228, 219, 0.16);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: hidden-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes hidden-pulse {
+  0%, 100% { backdrop-filter: blur(2px); background: rgba(232, 228, 219, 0.12); }
+  50%      { backdrop-filter: blur(4px); background: rgba(232, 228, 219, 0.22); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hidden-shimmer { animation: none; backdrop-filter: blur(3px); background: rgba(232, 228, 219, 0.16); }
+}

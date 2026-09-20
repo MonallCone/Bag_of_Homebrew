@@ -222,47 +222,30 @@ public class CampaignController : ControllerBase
 
         var characterId = targetMembership.CharacterId.Value;
         var character = await _db.Characters.FirstAsync(c => c.Id == characterId);
-
-        var items = await _db.Items
-            .Where(i => i.CharacterId == characterId)
-            .OrderByDescending(i => i.CreatedAt)
-            .Select(i => new {
-                i.Id,
-                i.Name,
-                Category = i.Category.ToString(),
-                Rarity = i.Rarity.ToString(),
-                i.IsPlotFlagged,
-                i.HomebrewDescription,
-                i.PropertiesJson,
-                i.ImageUrl,
-                i.Quantity,
-                i.CreatedAt
-            })
-            .ToListAsync();
-
-        var slots = await _db.EquipmentSlots
-            .Where(s => s.CharacterId == characterId)
-            .Include(s => s.Item)
-            .Select(s => new {
-                SlotType = s.SlotType.ToString(),
-                Item = s.Item == null ? null : new
-                {
-                    s.Item.Id,
-                    s.Item.Name,
-                    Category = s.Item.Category.ToString(),
-                    Rarity = s.Item.Rarity.ToString(),
-                    s.Item.IsPlotFlagged,
-                    s.Item.HomebrewDescription,
-                    s.Item.PropertiesJson,
-                    s.Item.ImageUrl,
-                    s.Item.Quantity,
-                    s.Item.CreatedAt
-                }
-            })
-            .ToListAsync();
+        var campaign = await _db.Campaigns.FirstAsync(c => c.Id == campaignId);
 
         // Is this the caller's own character? (determines editability on the frontend)
         var isOwn = targetMembership.UserId == user.Id;
+        var isGm = campaign.GmUserId == user.Id;
+        var canSeeAll = isOwn || isGm;   // owner and GM always see full detail on a hidden item; everyone else gets the redacted view
+
+        var itemEntities = await _db.Items
+            .Where(i => i.CharacterId == characterId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
+        var items = itemEntities.Select(i => BuildItemView(i, canSeeAll)).ToList();
+
+        var slotEntities = await _db.EquipmentSlots
+            .Where(s => s.CharacterId == characterId)
+            .Include(s => s.Item)
+            .ToListAsync();
+
+        var slots = slotEntities.Select(s => new
+        {
+            SlotType = s.SlotType.ToString(),
+            Item = s.Item == null ? null : BuildItemView(s.Item, canSeeAll)
+        }).ToList();
 
         return Ok(new
         {
@@ -285,6 +268,53 @@ public class CampaignController : ControllerBase
         });
     }
 
+    // Shapes one item for this response. When the item is hidden and this viewer isn't
+    // the owner or the GM, every identifying field is stripped — the frontend only
+    // learns that *something* occupies this slot, never what it is.
+    private static object BuildItemView(Item i, bool canSeeAll)
+    {
+        var isHidden = i.IsHiddenFromPlayers || i.IsHiddenByGm;
+
+        if (isHidden && !canSeeAll)
+        {
+            return new
+            {
+                i.Id,
+                Name = "",
+                Category = i.Category.ToString(),
+                Rarity = "Common",
+                IsPlotFlagged = false,
+                IsAttunement = false,
+                IsHiddenFromPlayers = i.IsHiddenFromPlayers,
+                IsHiddenByGm = i.IsHiddenByGm,
+                IsRedacted = true,
+                HomebrewDescription = (string?)null,
+                PropertiesJson = "{}",
+                ImageUrl = (string?)null,
+                Quantity = (int?)null,
+                i.CreatedAt
+            };
+        }
+
+        return new
+        {
+            i.Id,
+            i.Name,
+            Category = i.Category.ToString(),
+            Rarity = i.Rarity.ToString(),
+            i.IsPlotFlagged,
+            i.IsAttunement,
+            i.IsHiddenFromPlayers,
+            i.IsHiddenByGm,
+            IsRedacted = false,
+            i.HomebrewDescription,
+            i.PropertiesJson,
+            i.ImageUrl,
+            i.Quantity,
+            i.CreatedAt
+        };
+    }
+
     [HttpGet("{campaignId:guid}/vault/items")]
     public async Task<IActionResult> GetVaultItems(Guid campaignId)
     {
@@ -294,13 +324,16 @@ public class CampaignController : ControllerBase
         if (membership is null) return NotFound();
         var campaign = await _db.Campaigns.FirstAsync(c => c.Id == campaignId);
 
-        var items = (await _db.Items
+        var isGm = membership.Role == CampaignRole.Gm;
+
+        var itemEntities = await _db.Items
             .Where(i => i.VaultId == campaign.VaultId)
             .OrderByDescending(i => i.CreatedAt)
-            .ToListAsync())
-            .Select(ItemDto.From);
+            .ToListAsync();
 
-        return Ok(new { items, isGm = membership.Role == CampaignRole.Gm, vaultId = campaign.VaultId });
+        var items = itemEntities.Select(i => BuildItemView(i, isGm)).ToList();
+
+        return Ok(new { items, isGm, vaultId = campaign.VaultId });
     }
 
     [HttpPost("{campaignId:guid}/vault/items")]
@@ -327,6 +360,7 @@ public class CampaignController : ControllerBase
             Category = category,
             Rarity = rarity,
             IsPlotFlagged = request.IsPlotFlagged,
+            IsAttunement = request.IsAttunement,
             HomebrewDescription = request.HomebrewDescription,
             PropertiesJson = request.PropertiesJson ?? "{}",
             ImageUrl = request.ImageUrl,
@@ -377,6 +411,7 @@ public class CampaignController : ControllerBase
         item.Category = category;
         item.Rarity = rarity;
         item.IsPlotFlagged = request.IsPlotFlagged;
+        item.IsAttunement = request.IsAttunement;
         item.HomebrewDescription = request.HomebrewDescription;
         item.PropertiesJson = request.PropertiesJson ?? "{}";
         item.ImageUrl = request.ImageUrl;
@@ -691,5 +726,45 @@ public class CampaignController : ControllerBase
         campaign.Name = request.Name.Trim();
         await _db.SaveChangesAsync();
         return Ok(new { campaign.Id, campaign.Name });
+    }
+
+    [HttpPatch("{campaignId:guid}/members/{memberUserId:guid}/items/{itemId:guid}/hide")]
+    public async Task<IActionResult> SetItemHiddenByGm(Guid campaignId, Guid memberUserId, Guid itemId, SetHiddenRequest request)
+    {
+        var user = await GetCurrentUser(HttpContext, _db);
+        if (user is null) return Unauthorized();
+
+        var campaign = await _db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId);
+        if (campaign is null) return NotFound();
+        if (campaign.GmUserId != user.Id) return Forbid();   // only the GM sets this flag
+
+        var targetMembership = await _db.CampaignMemberships
+            .FirstOrDefaultAsync(m => m.CampaignId == campaignId && m.UserId == memberUserId);
+        if (targetMembership?.CharacterId is null) return NotFound();
+
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.CharacterId == targetMembership.CharacterId);
+        if (item is null) return NotFound();
+
+        item.IsHiddenByGm = request.Hidden;
+        await _db.SaveChangesAsync();
+        return Ok(ItemDto.From(item));
+    }
+
+    [HttpPatch("{campaignId:guid}/vault/items/{itemId:guid}/hide")]
+    public async Task<IActionResult> SetVaultItemHiddenByGm(Guid campaignId, Guid itemId, SetHiddenRequest request)
+    {
+        var user = await GetCurrentUser(HttpContext, _db);
+        if (user is null) return Unauthorized();
+        var membership = await GetMembership(campaignId, user, _db);
+        if (membership is null) return NotFound();
+        if (membership.Role != CampaignRole.Gm) return Forbid();
+
+        var campaign = await _db.Campaigns.FirstAsync(c => c.Id == campaignId);
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.VaultId == campaign.VaultId);
+        if (item is null) return NotFound();
+
+        item.IsHiddenByGm = request.Hidden;
+        await _db.SaveChangesAsync();
+        return Ok(ItemDto.From(item));
     }
 }

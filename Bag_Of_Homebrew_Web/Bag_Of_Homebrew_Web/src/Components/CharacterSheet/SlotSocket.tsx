@@ -19,56 +19,72 @@ export function SlotSocket({ slot, label, onUnequip, draggedItem, onItemClick, i
   const { setNodeRef, isOver } = useDroppable({ id: slot.slotType });
 
   const isValidTarget = draggedItem !== null && validSlotsFor(draggedItem).includes(slot.slotType);
+  const item = slot.item;
+  const isRedacted = !!item?.isRedacted;
+  const isHidden = !!item && (item.isHiddenFromPlayers || item.isHiddenByGm);
 
   const classes = [
     'slot-socket',
-    slot.item ? 'slot-socket--filled' : '',
-    slot.item ? rarityFrameClass(slot.item) : '',
+    item ? 'slot-socket--filled' : '',
+    item && !isRedacted ? rarityFrameClass(item) : '',
+    isRedacted ? 'slot-socket--redacted' : '',
     isLinkedOffHand ? 'slot-socket--linked' : '',
     isValidTarget ? 'slot-socket--valid-target' : '',
     isValidTarget && isOver ? 'slot-socket--over' : '',
   ].filter(Boolean).join(' ');
 
+  if (isRedacted) {
+    return (
+      <div ref={setNodeRef} className={classes}>
+        <div className="hidden-cloud" />
+      </div>
+    );
+  }
+
   return (
     <div
       ref={setNodeRef}
       className={classes}
-      onClick={() => { if (slot.item) onItemClick(slot.item); }}
+      onClick={() => { if (item) onItemClick(item); }}
       onContextMenu={(e) => {
         e.preventDefault();
         // Unequipping either slot of a two-handed weapon clears both (backend handles it)
-        if (slot.item) onUnequip(slot.slotType);
+        if (item) onUnequip(slot.slotType);
       }}
       title={
-        isLinkedOffHand ? `${slot.item?.name} (two-handed)` :
-        slot.item ? `${slot.item.name} (right-click to unequip)` : label
+        isLinkedOffHand ? `${item?.name} (two-handed)` :
+        item ? `${item.name} (right-click to unequip)` : label
       }
     >
-      {slot.item ? (
-        slot.item.imageUrl ? (
-          <img className="slot-socket__image" src={imageSrc(slot.item.imageUrl)} alt={slot.item.name} draggable={false} />
+      {item ? (
+        item.imageUrl ? (
+          <img className="slot-socket__image" src={imageSrc(item.imageUrl)} alt={item.name} draggable={false} />
         ) : (
-          <span className="slot-socket__item-name">{slot.item.name}</span>
+          <span className="slot-socket__item-name">{item.name}</span>
         )
       ) : (
         <span className="slot-socket__label">{label}</span>
       )}
-      {slot.item?.isPlotFlagged && !isLinkedOffHand && <span className="plot-dot" />}
-      
-      {slot.item && onAdjustQuantity && slot.item.category === 'Consumable' && (
+
+      {isHidden && !isLinkedOffHand && <div className="hidden-shimmer" />}
+
+      {item?.isPlotFlagged && !isLinkedOffHand && <i className="fa-solid fa-flag plot-dot"></i>}
+      {item?.isAttunement && !isLinkedOffHand && <i className="fa-regular fa-circle-dot attunement-dot" title="Requires attunement"></i>}
+
+      {item && onAdjustQuantity && item.category === 'Consumable' && (
         <div className="slot-socket__qty" onPointerDown={(e) => e.stopPropagation()}>
           <button
             className="slot-socket__qty-btn"
-            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(slot.item!.id, -1); }}
-            disabled={(slot.item.quantity ?? 0) <= 0}
+            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, -1); }}
+            disabled={(item.quantity ?? 0) <= 0}
             aria-label="Decrease quantity"
           >
             −
           </button>
-          <span className="slot-socket__qty-value">{slot.item.quantity ?? 0}</span>
+          <span className="slot-socket__qty-value">{item.quantity ?? 0}</span>
           <button
             className="slot-socket__qty-btn"
-            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(slot.item!.id, 1); }}
+            onClick={(e) => { e.stopPropagation(); onAdjustQuantity(item.id, 1); }}
             aria-label="Increase quantity"
           >
             +

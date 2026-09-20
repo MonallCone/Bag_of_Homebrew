@@ -163,6 +163,7 @@ export function CampaignView({ campaignId, currentUserId, isPaid }: Props) {
                     campaignId,
                     campaignVaultId: campaign!.vaultId,
                     memberUserId: isYou ? undefined : activeTab.userId,
+                    isGm,
                     giftTargets: players
                       .filter((p) => p.userId !== currentUserId && p.characterId)  // other players with characters
                       .map((p) => ({ userId: p.userId, name: p.characterName ?? p.userName })),

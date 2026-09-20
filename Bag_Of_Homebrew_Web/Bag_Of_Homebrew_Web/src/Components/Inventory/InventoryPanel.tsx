@@ -38,9 +38,11 @@ interface Props {
   itemUsage?: ItemUsage | null;
   onEditItem?: (itemId: string, payload: CreateItemPayload) => Promise<void>;
   onDuplicate?: (item: Item) => void;
+  onSetPlayerHidden?: (itemId: string, hidden: boolean) => void;
+  onSetGmHidden?: (itemId: string, hidden: boolean) => void;
 }
 
-export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly, itemUsage, onEditItem, onDuplicate}: Props) {
+export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onSelectItem, onDelete, onAdjustQuantity, onReturnToVault, sendToCharacterTargets, onSendToCharacter, inCampaign = false, giftTargets, onGift, onAcceptTransfer, onRejectTransfer, currency, onCurrencyChange, currencyReadOnly, itemUsage, onEditItem, onDuplicate, onSetPlayerHidden, onSetGmHidden}: Props) {
   const [activeTab, setActiveTab] = useState<TabValue>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ item: Item; x: number; y: number } | null>(null);
@@ -130,6 +132,8 @@ export function InventoryPanel({ items, onCreateItem, onEquip, selectedItem, onS
           onRejectTransfer={onRejectTransfer}
           onEditRequest={onEditItem ? (item) => setEditingItem(item) : undefined}
           onDuplicate={onDuplicate}
+          onSetPlayerHidden={onSetPlayerHidden}
+          onSetGmHidden={onSetGmHidden}
         />
       )}
 

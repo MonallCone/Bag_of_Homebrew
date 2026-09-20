@@ -20,6 +20,8 @@ interface Props {
   onClose: () => void;
   onEditRequest?: (item: Item) => void;
   onDuplicate?: (item: Item) => void;
+  onSetPlayerHidden?: (itemId: string, hidden: boolean) => void;
+  onSetGmHidden?: (itemId: string, hidden: boolean) => void;
 }
 
 export function ItemContextMenu({
@@ -39,7 +41,9 @@ export function ItemContextMenu({
   inCampaign = false,
   onClose,
   onEditRequest,
-  onDuplicate
+  onDuplicate,
+  onSetPlayerHidden,
+  onSetGmHidden
 }: Props) {
   const [charSubmenuOpen, setCharSubmenuOpen] = useState(false);
   const [giftSubmenuOpen, setGiftSubmenuOpen] = useState(false);
@@ -247,6 +251,24 @@ export function ItemContextMenu({
             disabled={(item.quantity ?? 0) <= 0}
           >
             Use one ({item.quantity ?? 0} left)
+          </button>
+        )}
+
+        {/* Visibility toggles — campaign mode */}
+        {onSetPlayerHidden && (
+          <button
+            className="context-menu__item"
+            onClick={() => { onSetPlayerHidden(item.id, !item.isHiddenFromPlayers); onClose(); }}
+          >
+            {item.isHiddenFromPlayers ? 'Unhide from players' : 'Hide from players'}
+          </button>
+        )}
+        {onSetGmHidden && (
+          <button
+            className="context-menu__item"
+            onClick={() => { onSetGmHidden(item.id, !item.isHiddenByGm); onClose(); }}
+          >
+            {item.isHiddenByGm ? 'Unhide from everyone' : 'Hide from everyone'}
           </button>
         )}
         

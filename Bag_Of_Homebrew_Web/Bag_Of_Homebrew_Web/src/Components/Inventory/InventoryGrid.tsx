@@ -14,9 +14,19 @@ interface SlotProps {
   export function DraggableSlot({ item, isSelected, onSelect, onContextMenu, onAdjustQuantity }: SlotProps) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
       id: item.id,
-      // Don't let pending items be dragged into equipment slots
-      disabled: !!item.__pendingIncoming || !!item.__pendingOutgoing,
+      // Don't let pending or redacted items be dragged into equipment slots
+      disabled: !!item.__pendingIncoming || !!item.__pendingOutgoing || !!item.isRedacted,
     });
+
+    if (item.isRedacted) {
+      return (
+        <div className="inventory-slot inventory-slot--redacted">
+          <div className="hidden-cloud" />
+        </div>
+      );
+    }
+
+    const isHidden = item.isHiddenFromPlayers || item.isHiddenByGm;
 
     const classes = [
       'inventory-slot',
@@ -46,6 +56,8 @@ interface SlotProps {
         ) : (
           <div className="inventory-slot__placeholder" />
         )}
+
+        {isHidden && <div className="hidden-shimmer" />}
 
         {/* Rarity/plot indicators */}
         {item.isPlotFlagged && <i className="fa-solid fa-flag plot-dot"></i>}
@@ -101,7 +113,7 @@ export function InventoryGrid({ items, selectedItemId, onSelect, onContextMenu, 
   const FREE_CAP = 50;
   const filledCount = items.length;
   const gridSize = isPaid
-    ? Math.max(50, filledCount + 10)   // paid: always 10 empty slots of headroom
+    ? Math.max(50, filledCount + 10)
     : FREE_CAP;     
   const slots = Array.from({ length: gridSize }, (_, i) => items[i] ?? null);
 

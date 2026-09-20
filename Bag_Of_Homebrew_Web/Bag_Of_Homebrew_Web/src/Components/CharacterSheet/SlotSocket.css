@@ -10,6 +10,7 @@
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: border-color 0.15s ease;
+  position: relative;
 }
 
 .slot-socket:hover {
@@ -98,3 +99,8 @@
 .slot-socket__qty-btn:disabled { opacity: 0.4; cursor: default; }
 
 .slot-socket__qty-value { font-size: 13px; min-width: 16px; text-align: center; }
+
+.slot-socket--redacted {
+  cursor: default;
+  overflow: hidden;
+}

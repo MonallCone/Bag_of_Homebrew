@@ -28,5 +28,7 @@
         public string? ImageUrl { get; set; }
 
         public int? Quantity { get; set;  }
+        public bool IsHiddenFromPlayers { get; set; }   // set by the owning player
+        public bool IsHiddenByGm { get; set; }          // set by the GM
     }
 }

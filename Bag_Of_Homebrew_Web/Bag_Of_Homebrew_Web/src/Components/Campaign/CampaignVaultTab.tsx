@@ -5,6 +5,7 @@ import type { CreateItemPayload } from '../Inventory/CreateItemModal';
 import { type ApiItem, toItem } from '../../api/item';
 import { useToast } from '../Toast/ToastProvider';
 import { API_BASE } from '../../config';
+import { setVaultItemHiddenByGm } from '../../api/visibility';
 
 interface Player { userId: string; characterName: string | null; userName: string; }
 
@@ -95,6 +96,11 @@ export function CampaignVaultTab({ campaignId, isGm, players = [], refreshSignal
     }
   };
 
+  const setHidden = async (itemId: string, hidden: boolean) => {
+    const ok = await setVaultItemHiddenByGm(campaignId, itemId, hidden);
+    if (ok) await loadItems();
+  };
+
   return (
     <div className="campaign-vault-tab">
       <InventoryPanel
@@ -110,6 +116,7 @@ export function CampaignVaultTab({ campaignId, isGm, players = [], refreshSignal
         onSendToCharacter={isGm ? sendToCharacter : undefined}
         onEditItem={editItem}
         onDuplicate={duplicateItem}
+        onSetGmHidden={isGm ? setHidden : undefined}
       />
     </div>
   );

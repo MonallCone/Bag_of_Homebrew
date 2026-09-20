@@ -19,6 +19,7 @@ import { useToast } from '../Toast/ToastProvider';
 import { useItemUsage } from '../../api/itemUsage';
 import { API_BASE } from '../../config';
 import { PouchColumn } from './PouchColumn';
+import { setItemHiddenFromPlayers, setItemHiddenByGm } from '../../api/visibility';
 
 interface ApiSlot {
   slotType: SlotType;
@@ -34,6 +35,7 @@ interface CampaignContext {
   campaignId: string;
   campaignVaultId: string;
   memberUserId?: string;
+  isGm?: boolean;
   giftTargets?: { userId: string; name: string }[];
   incoming?: { transferId: string; fromUserId: string; item: ApiItem }[];
   outgoing?: { transferId: string; itemId: string; toUserId: string }[];
@@ -280,6 +282,18 @@ export function CharacterSheetPage({ characterId, vaultId, campaign, readOnly = 
       if (res.ok) await Promise.all([loadItems(), loadSlots()]);
   };
 
+  const toggleHiddenFromPlayers = async (itemId: string, hidden: boolean) => {
+    if (readOnly) return;
+    const ok = await setItemHiddenFromPlayers(characterId, itemId, hidden);
+    if (ok) await Promise.all([loadItems(), loadSlots()]);
+  };
+
+  const toggleHiddenByGm = async (itemId: string, hidden: boolean) => {
+    if (!campaign?.isGm || !campaign?.memberUserId) return;
+    const ok = await setItemHiddenByGm(campaign.campaignId, campaign.memberUserId, itemId, hidden);
+    if (ok) await loadEverything();
+  };
+
   const handleAcChange = async (value: string) => {
     if (readOnly) return;
     setManualAc(value);
@@ -468,6 +482,8 @@ useEffect(() => {
         itemUsage={usage}
         onEditItem={readOnly ? undefined : editItem}
         onDuplicate={readOnly ? undefined : duplicateItem}
+        onSetPlayerHidden={!readOnly && campaign ? toggleHiddenFromPlayers : undefined}
+        onSetGmHidden={campaign?.isGm ? toggleHiddenByGm : undefined}
       />
     </div>
 

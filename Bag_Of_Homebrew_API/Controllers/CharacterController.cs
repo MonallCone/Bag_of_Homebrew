@@ -352,7 +352,9 @@ public class CharacterController : ControllerBase
                     s.Item.PropertiesJson,
                     s.Item.CreatedAt,
                     s.Item.ImageUrl,
-                    s.Item.Quantity
+                    s.Item.Quantity,
+                    s.Item.IsHiddenFromPlayers,
+                    s.Item.IsHiddenByGm,
                 }
             })
             .ToListAsync();
@@ -530,5 +532,22 @@ public class CharacterController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok();
+    }
+
+    [HttpPatch("{characterId:guid}/items/{itemId:guid}/hide")]
+    public async Task<IActionResult> SetItemHiddenFromPlayers(Guid characterId, Guid itemId, SetHiddenRequest request)
+    {
+        var user = await GetCurrentUser(HttpContext, _db);
+        if (user is null) return Unauthorized();
+
+        var ownsCharacter = await _db.Characters.AnyAsync(c => c.Id == characterId && c.UserId == user.Id);
+        if (!ownsCharacter) return NotFound();
+
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId && i.CharacterId == characterId);
+        if (item is null) return NotFound();
+
+        item.IsHiddenFromPlayers = request.Hidden;
+        await _db.SaveChangesAsync();
+        return Ok(ItemDto.From(item));
     }
 }
