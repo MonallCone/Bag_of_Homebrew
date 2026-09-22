@@ -18,11 +18,13 @@ import { ToastProvider, useToast} from './Components/Toast/ToastProvider';
 import { API_BASE } from './config';
 import { LandingPage } from './Components/Marketing/LandingPage';
 import { PrivacyPolicy } from './Components/Marketing/PrivacyPolicy';
+import { SettingsModal } from './Components/Settings/SettingsModal';
 
 interface Session {
   displayName: string;
   vaultId: string;
   userId: string;
+  email: string;
 }
 
 interface CharacterSummary {
@@ -68,13 +70,14 @@ function AppShell() {
   const [renameCampaignTarget, setRenameCampaignTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameVaultOpen, setRenameVaultOpen] = useState(false);
   const [vaultName, setVaultName] = useState('Dragon\u2019s Vault');
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!data) { setSession(null); return; }
-        setSession({ displayName: data.displayName, vaultId: data.vaultId, userId: data.id });
+        setSession({ displayName: data.displayName, vaultId: data.vaultId, userId: data.id, email: data.email});
         setIsPaid(data.isPaid ?? false);
         setVaultName(data.vaultName ?? 'Dragon\u2019s Vault'); 
       })
@@ -233,7 +236,7 @@ function AppShell() {
             onLeaveCampaign={(id, name) => { setMenuOpen(false); setLeaveCampaignTarget({ id, name }); }}
             onRenameCampaign={(id, name) => { setMenuOpen(false); setRenameCampaignTarget({ id, name }); }}
             onLogout={() => {setMenuOpen(false); logout();}}
-            //onOpenSettings={() => { setMenuOpen(false); navigate('/settings'); }}
+            onOpenSettings={() => { setMenuOpen(false); setShowSettings(true); }}
           />
       )}
 
@@ -317,6 +320,23 @@ function AppShell() {
         onClose={() => setLeaveCampaignTarget(null)}
       />
     )}
+
+    {showSettings && (
+    <SettingsModal
+      email={session.email}
+      displayName={session.displayName}
+      vaultName={vaultName}
+      characters={characters}
+      campaigns={campaigns}
+      onRenameVault={() => setRenameVaultOpen(true)}
+      onRenameCharacter={(id, name) => setRenameTarget({ id, name })}
+      onDeleteCharacter={(id, name) => setDeleteTarget({ id, name })}
+      onRenameCampaign={(id, name) => setRenameCampaignTarget({ id, name })}
+      onDeleteCampaign={(id, name) => setDeleteCampaignTarget({ id, name })}
+      onLeaveCampaign={(id, name) => setLeaveCampaignTarget({ id, name })}
+      onClose={() => setShowSettings(false)}
+    />
+  )}
     </>
   );
 }

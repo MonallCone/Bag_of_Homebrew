@@ -2,7 +2,7 @@ import ReactMarkdown from "react-markdown";
 
 export function PrivacyPolicy() {
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px', lineHeight: 1.6 }}>
+    <div className="privacy-policy">
       <ReactMarkdown>{privacyText}</ReactMarkdown>
     </div>
   );
