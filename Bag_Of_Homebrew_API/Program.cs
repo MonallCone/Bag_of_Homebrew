@@ -58,11 +58,6 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapHub<CampaignHub>("/hubs/campaign");
-
 var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -89,6 +84,7 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<CampaignHub>("/hubs/campaign");
 app.MapControllers();
 
 app.MapFallbackToFile("index.html");
